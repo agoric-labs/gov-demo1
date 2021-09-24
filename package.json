@@ -1,5 +1,6 @@
 {
   "scripts": {
+    "start": "snowpack dev",
     "build": "exit 0",
     "test": "ava",
     "lint": "yarn lint:types && yarn lint:eslint",
@@ -20,6 +21,7 @@
     "eslint-plugin-jsx-a11y": "^6.4.1",
     "eslint-plugin-prettier": "^4.0.0",
     "prettier": "^2.4.1",
+    "snowpack": "^3.8.8",
     "typescript": "^4.4.3"
   },
   "eslintConfig": {
@@ -33,5 +35,9 @@
   },
   "eslintIgnore": [
     "dappConstants.js"
-  ]
+  ],
+  "dependencies": {
+    "@agoric/captp": "^1.10.5",
+    "@agoric/install-ses": "^0.5.27"
+  }
 }

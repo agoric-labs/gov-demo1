@@ -1,0 +1,15 @@
+<!doctype html>
+
+<head>
+  <title>Hello, World!</title>
+</head>
+
+<body>
+  <h1>Hello, World!</h1>
+  <script type="module">
+    import { main } from './src/main.js';
+    const p = document.createElement('p');
+    p.textContent = main();
+    document.body.appendChild(p);
+  </script>
+</body>

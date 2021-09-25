@@ -1,13 +1,13 @@
 /* eslint-disable */
 
 /* global process */
-import dappConstants from './constants.js';
+// import dappConstants from './constants.js';
 
-const { API_URL, BRIDGE_URL, CONTRACT_NAME } = dappConstants;
+const { BRIDGE_URL= 'http://@@@', CONTRACT_NAME ='@@g'} = {}; // dappConstants;
 
 // === WEB SOCKET
 
-const endpointToSocket = new Map();
+const endpointToSocket = new Map(); // WARNING: global mutable state
 
 function logMsg(obj, direction = 'send:') {
   const type = obj.type;
@@ -29,12 +29,7 @@ function logMsg(obj, direction = 'send:') {
 
 function getWebSocketEndpoint(endpoint) {
   // TODO proxy socket.
-  let url;
-  if (endpoint === '/api') {
-    url = new URL(endpoint, API_URL || window.origin);
-  } else {
-    url = new URL(endpoint, BRIDGE_URL || window.origin);
-  }
+  const url = new URL(endpoint, BRIDGE_URL || window.origin);
   url.protocol = url.protocol.replace(/^http/, 'ws');
   return url;
 }
@@ -72,8 +67,9 @@ function createSocket({ onConnect, onDisconnect, onMessage }, endpoint) {
     }
     let ifrQ = [];
     ifr.src = `${
-      process.env.PUBLIC_URL
-    }/agoric-wallet.html?suggestedDappPetname=${encodeURIComponent(
+      window.location.href // @@WARNING: AMBIENT
+      // @@@ parcel / react provide: process.env.PUBLIC_URL
+    }public/agoric-wallet.html?suggestedDappPetname=${encodeURIComponent(
       CONTRACT_NAME,
     )}`;
     ifr.addEventListener('load', () => {

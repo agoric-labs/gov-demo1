@@ -3,7 +3,7 @@
 /* global process */
 // import dappConstants from './constants.js';
 
-const { BRIDGE_URL= 'http://@@@', CONTRACT_NAME ='@@g'} = {}; // dappConstants;
+const { BRIDGE_URL= 'http://@@@', CONTRACT_NAME ='Governance Demo'} = {}; // dappConstants;
 
 // === WEB SOCKET
 

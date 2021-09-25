@@ -38,6 +38,7 @@
   ],
   "dependencies": {
     "@agoric/captp": "^1.10.5",
-    "@agoric/install-ses": "^0.5.27"
+    "@agoric/install-ses": "^0.5.27",
+    "@agoric/promise-kit": "^0.2.27"
   }
 }

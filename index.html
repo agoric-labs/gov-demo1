@@ -1,17 +1,74 @@
 <!doctype html>
 
 <head>
-  <title>Hello, World!</title>
+  <title>Governance Demo</title>
+  <style>
+    .hidden {
+      display: none
+    }
+
+    .wait {
+      cursor: wait
+    }
+
+    fieldset label {
+      display: block
+    }
+  </style>
 </head>
 
 <body>
-  <h1>Hello, World!</h1>
+  <h1>Governance Demo</h1>
+
+  <p id='needDappApproval' class='hidden'>Please approve this dapp.</p>
+
+  <form>
+    <fieldset>
+      <label>Registrar Installation boardID: <input name='registrarInstallation' /></label>
+      <label>Committe name: <input name='committeeName' /></label>
+      <label>Committe size: <input name='committeeSize' type='number' /></label>
+      <button type="button" id='createRegistrar'>Create Registrar</button>
+      <label>Registrar Creator Facet boardID: <input name='registrarCreatorFacet' /></label>
+      <label>Registrar Public Facet boardID: <input name='registrarPublicFacet' /></label>
+    </fieldset>
+  </form>
+  <div>
+    <h2>Questions</h2>
+    <ul>
+      <li>...</li>
+    </ul>
+  </div>
   <script type="module">
+    // TODO: factor out ambient authority from these
+    import {
+      activateWebSocket,
+      deactivateWebSocket,
+      getActiveSocket,
+    } from './src/utils/fetch-websocket.js';
+
     import { main } from './src/main.js';
 
-    const p = document.createElement('p');
-    p.textContent = 'XXX';
-    document.body.appendChild(p);
-    main().setup();
+    const net = {
+      activateWebSocket,
+      deactivateWebSocket,
+      getActiveSocket,
+    };
+    const theElt = s => document.querySelector(s) || assert.fail(s);
+    const ui = {
+      show: sel => theElt(sel).classList.remove('hidden'),
+      hide: sel => theElt(sel).classList.add('hidden'),
+      onClick: (sel, h) => theElt(sel).addEventListener('click', h),
+      busy: async (sel, thunk) => {
+        try {
+          theElt(sel).classList.add('wait');
+          await thunk();
+        } finally {
+          theElt(sel).classList.remove('wait');
+        }
+      },
+      getField: sel => theElt(sel).value,
+      setField: (sel, value) => (theElt(sel).value = value),
+    }
+    main(ui, net);
   </script>
 </body>

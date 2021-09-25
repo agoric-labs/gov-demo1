@@ -6,9 +6,11 @@ const { entries } = Object;
  * @param { Document } document
  * @returns { UI }
  * @typedef {{
- *   show: (sel: string) => void,
- *   hide: (sel: string) => void,
+ *   show: (sel: string) => void
+ *   hide: (sel: string) => void
+ *   setDisabled: (sel: string, state: boolean) => void
  *   onClick: (sel: string, l: EventListener) => void
+ *   onChange: (sel: string, l: EventListener) => void
  *   onInput: (sel: string, l: EventListener) => void
  *   busy: (sel: string, thunk: () => Promise<void>) => Promise<void>
  *   getField: (sel: string) => string
@@ -41,7 +43,9 @@ export const makeUI = (document) => {
   return {
     show: (sel) => theElt(sel).classList.remove('hidden'),
     hide: (sel) => theElt(sel).classList.add('hidden'),
+    setDisabled: (sel, state) => (theElt(sel).disabled = state),
     onClick: (sel, l) => theElt(sel).addEventListener('click', l),
+    onChange: (sel, l) => theElt(sel).addEventListener('change', l),
     onInput: (sel, l) => theElt(sel).addEventListener('input', l),
     busy: async (sel, thunk) => {
       try {
@@ -73,6 +77,7 @@ export const makeUI = (document) => {
     },
     setItems: (sel, items) => {
       const list = theElt(sel);
+      list.innerHTML = '';
       items.forEach((item) => {
         list.appendChild(elt('li', {}, item));
       });

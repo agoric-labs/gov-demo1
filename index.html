@@ -22,30 +22,79 @@
 
   <p id='needDappApproval' class='hidden'>Please approve this dapp.</p>
 
-  <form>
-    <fieldset>
-      <label>Registrar Installation boardID: <input name='registrarInstallation' /></label>
-      <label>Committe name: <input name='committeeName' /></label>
-      <label>Committe size: <input name='committeeSize' type='number' /></label>
-      <button type="button" id='createRegistrar'>Create Registrar</button>
-      <label>Registrar Creator Facet boardID: <input name='registrarCreatorFacet' /></label>
-      <label>Registrar Public Facet boardID: <input name='registrarPublicFacet' /></label>
-    </fieldset>
-  </form>
   <div>
-    <h2>Questions</h2>
-    <ul>
-      <li>...</li>
-    </ul>
+    <h2>Vote as Committe Member</h2>
+    <p><em>on invitation from wallet...</em></p>
+    <form>
+      <fieldset>
+        <legend>Questions</legend>
+        <select name=question>
+          <option value="1">1. Flip the widget?</option>
+        </select>
+        <p>Positions:</p>
+        <ul id='positions'>
+          <li><label><input type="radio" name="position" value="yes">yes</label></li>
+          <li><label><input type="radio" name="position" value="no">no</label></li>
+          <li><label><input type="radio" name="position" value="abstain">abstain</label></li>
+        </ul>
+        <label>Registrar Public Facet boardID: <input name='registrarPublicFacet' value='998753646' /></label>
+        <label>Voter Invitation boardID: <input name='voterInvitation' /></label>
+        <button type='button' id='vote'>Vote</button>
+      </fieldset>
+    </form>
+  </div>
+
+  <hr />
+  <div>
+    <h2>Create Committee</h2>
+    <form>
+      <fieldset>
+        <legend>Committee Registrar</legend>
+        <label>Registrar Installation boardID: <input name='registrarInstallation' value='495234043' /></label>
+        <label>Committe name: <input name='committeeName' value="The Three Stooges" /></label>
+        <label>Committe size: <input name='committeeSize' type='number' value="3" /></label>
+        <button type="button" id='createRegistrar'>Create Registrar</button>
+        <hr />
+        <h4>Invitations</h4>
+        <textarea name='invitations' rows='5' , cols='10' readonly>806166404
+893970015
+1561165664</textarea>
+      </fieldset>
+    </form>
+  </div>
+  <hr />
+  <div>
+    <h2>Registrar Creator</h2>
+    <form>
+      <fieldset>
+        <legend>Add Question</legend>
+        <p><em>Enter the question on the first line and each option on a separate line following.</em></p>
+        <textarea name='issue' rows='6' cols='80'>When shall we meet?
+Tue, 9am
+Wed, 10am</textarea>
+        <br />
+        <label>Registrar Creator Facet boardID: <input name='registrarCreatorFacet' value='458259332' /></label>
+        <label>Counter Installation boardID: <input name='counterInstallation' value='1178513834' /></label>
+        <label>chainTimerService boardID: <input name='chainTimerService' value='254080728' /></label>
+        <label>Seconds till close of votes: <input name='secondsTillClose' value='90' /></label>
+        <button type="button" id='addQuestion'>Add Question</button>
+        <hr />
+        <h3>Outcomes</h3>
+        <ul id='outcomes'>
+          <li>1: heads</li>
+        </ul>
+      </fieldset>
+    </form>
   </div>
   <script type="module">
-    // TODO: factor out ambient authority from these
+    // TODO: factor out ambient authority from network functions
     import {
       activateWebSocket,
       deactivateWebSocket,
       getActiveSocket,
     } from './src/utils/fetch-websocket.js';
 
+    import { makeUI } from './src/ui.js';
     import { main } from './src/main.js';
 
     const net = {
@@ -53,22 +102,6 @@
       deactivateWebSocket,
       getActiveSocket,
     };
-    const theElt = s => document.querySelector(s) || assert.fail(s);
-    const ui = {
-      show: sel => theElt(sel).classList.remove('hidden'),
-      hide: sel => theElt(sel).classList.add('hidden'),
-      onClick: (sel, h) => theElt(sel).addEventListener('click', h),
-      busy: async (sel, thunk) => {
-        try {
-          theElt(sel).classList.add('wait');
-          await thunk();
-        } finally {
-          theElt(sel).classList.remove('wait');
-        }
-      },
-      getField: sel => theElt(sel).value,
-      setField: (sel, value) => (theElt(sel).value = value),
-    }
-    main(ui, net);
+    main(makeUI(document), net);
   </script>
 </body>

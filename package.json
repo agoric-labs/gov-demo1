@@ -38,7 +38,9 @@
   ],
   "dependencies": {
     "@agoric/captp": "^1.10.5",
+    "@agoric/governance": "^0.2.3",
     "@agoric/install-ses": "^0.5.27",
+    "@agoric/notifier": "^0.3.30",
     "@agoric/promise-kit": "^0.2.27"
   }
 }

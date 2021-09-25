@@ -1,7 +1,7 @@
 {
   "scripts": {
     "start": "snowpack dev",
-    "build": "exit 0",
+    "build": "snowpack build",
     "test": "ava",
     "lint": "yarn lint:types && yarn lint:eslint",
     "lint:eslint": "eslint '**/*.js'",

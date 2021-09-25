@@ -14,6 +14,32 @@
     fieldset label {
       display: block
     }
+
+    #positions {
+      list-style: none;
+    }
+
+    nav ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    nav li {
+      display: inline;
+      border: solid;
+      border-width: 1px 1px 0 1px;
+      margin: 0 5px 0 0;
+    }
+
+    nav li label {
+      padding: 0 10px;
+    }
+
+    nav label>input[type='radio']:checked {
+      padding-bottom: 2px;
+      background: yellow;
+    }
   </style>
 </head>
 
@@ -25,11 +51,21 @@
 
   <p id='needDappApproval' class='hidden'>Please approve this dapp.</p>
 
-  <div>
-    <h2>Vote as Committe Member</h2>
-    <p><em>TODO: trigger on invitation from wallet...</em></p>
+  <nav>
+    <ul>
+      <li><label><input type='radio' checked name='section' value='member' />Committe Member</label></li>
+      <li><label><input type='radio' checked name='section' value='creator' />Committee Creator</label></li>
+      <li><label><input type='radio' checked name='section' value='registrar' />Committe Registrar</label></li>
+    </ul>
+  </nav>
+
+  <section id='member'>
     <form>
       <fieldset>
+        <label>Voter Invitation boardID: <input name='voterInvitation' /></label>
+        <button type='button' id='claim'>Claim</button>
+        <p><em>TODO: trigger on invitation from wallet...</em></p>
+        <hr />
         <legend>Questions</legend>
         <select name=question>
           <option value="1">1. Flip the widget?</option>
@@ -40,16 +76,18 @@
           <li><label><input type="radio" name="position" value="no">no</label></li>
           <li><label><input type="radio" name="position" value="abstain">abstain</label></li>
         </ul>
-        <label>Registrar Public Facet boardID: <input name='registrarPublicFacet' value='998753646' /></label>
-        <label>Voter Invitation boardID: <input name='voterInvitation' /></label>
-        <button type='button' id='vote'>Vote</button>
+        <label>Deadline: <input readonly name='deadline' /></label>
+        <button type='button' id='vote' disabled>Vote</button>
+        <hr />
+        <h3>Outcomes</h3>
+        <ul id='outcomes'>
+          <li>1: heads</li>
+        </ul>
       </fieldset>
     </form>
-  </div>
+  </section>
 
-  <hr />
-  <div>
-    <h2>Create Committee</h2>
+  <section id='creator' class='hidden'>
     <form>
       <fieldset>
         <legend>Committee Registrar</legend>
@@ -59,15 +97,13 @@
         <button type="button" id='createRegistrar'>Create Registrar</button>
         <hr />
         <h4>Invitations</h4>
-        <textarea name='invitations' rows='5' , cols='10' readonly>806166404
-893970015
-1561165664</textarea>
+        <textarea name='invitations' rows='5' , cols='10' readonly></textarea>
+        <label>Registrar Public Facet boardID: <input name='registrarPublicFacet' /></label>
       </fieldset>
     </form>
-  </div>
-  <hr />
-  <div>
-    <h2>Registrar Creator</h2>
+  </section>
+
+  <section id='registrar' class='hidden'>
     <form>
       <fieldset>
         <legend>Add Question</legend>
@@ -76,19 +112,15 @@
 Tue, 9am
 Wed, 10am</textarea>
         <br />
-        <label>Registrar Creator Facet boardID: <input name='registrarCreatorFacet' value='458259332' /></label>
+        <label>Registrar Creator Facet boardID: <input name='registrarCreatorFacet' /></label>
         <label>Counter Installation boardID: <input name='counterInstallation' value='1178513834' /></label>
         <label>chainTimerService boardID: <input name='chainTimerService' value='254080728' /></label>
-        <label>Seconds till close of votes: <input name='secondsTillClose' value='90' /></label>
+        <label>Seconds till close of votes: <input name='secondsTillClose' value='120' /></label>
         <button type="button" id='addQuestion'>Add Question</button>
         <hr />
-        <h3>Outcomes</h3>
-        <ul id='outcomes'>
-          <li>1: heads</li>
-        </ul>
       </fieldset>
     </form>
-  </div>
+  </section>
   <script type="module">
     // TODO: factor out ambient authority from network functions
     import {

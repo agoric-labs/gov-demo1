@@ -79,16 +79,39 @@ export const main = (
 
   const { board, zoe } = networkSetup();
 
+  const sections = ['member', 'creator', 'registrar'];
+  sections.forEach((section) => {
+    ui.onChange(`nav input[value="${section}"]`, () => {
+      sections.forEach((candidate) => {
+        if (candidate === section) {
+          ui.show(`section#${section}`);
+        } else {
+          ui.hide(`section#${candidate}`);
+        }
+      });
+    });
+  });
+
   const withCatch = (oops, go) => (ev) => go(ev).catch((err) => oops(err));
 
   /** @type { QuestionDetails[] } */
   const questions = [];
+  /** @type { string[][] } */
+  const outcomes = [];
 
   const renderPositions = (qix) => {
+    const {
+      positions,
+      closingRule: { deadline },
+    } = questions[qix];
+    ui.setField(
+      'input[name="deadline"]',
+      new Date(Number(deadline) * 1000).toString(),
+    );
     ui.setRadioGroup(
       '#positions',
       // @ts-ignore
-      questions[qix].positions.map(({ text }) => ({
+      positions.map(({ text }) => ({
         value: text,
         label: text,
       })),
@@ -131,10 +154,38 @@ export const main = (
     assert('text' in details.issue); // SimpleIssue only
     questions.push(details);
     renderQuestions();
+
+    const {
+      issue,
+      counterInstance,
+      closingRule: { deadline },
+    } = details;
+    const deadlineDisplay = new Date(Number(deadline) * 1000).toISOString();
+
+    E(E(zoe).getPublicFacet(counterInstance))
+      .getOutcome()
+      .then((outcome) => {
+        console.log('got outcome', issue, outcome);
+        outcomes.push([deadlineDisplay, ' ', issue.text, outcome]);
+        ui.setItems('#outcomes', outcomes);
+      })
+      .catch((e) => {
+        console.error('vote failed:', issue, e);
+        outcomes.push([
+          deadlineDisplay,
+          ' vote failed: ',
+          `${e}`,
+          ' question: ',
+          issue.text,
+        ]);
+        ui.setItems('#outcomes', outcomes);
+      });
   };
 
-  ui.onInput(
-    'input[name="registrarPublicFacet"]',
+  const voterRights = makePromiseKit();
+
+  ui.onClick(
+    'form button#claim',
     withCatch(
       (err) => {
         debugger;
@@ -142,29 +193,41 @@ export const main = (
       },
       /** @type { EventListener } */
       async (_ev) => {
-        const the = {
-          registrarPublicFacet: E(board).getValue(
-            ui.getField('input[name="registrarPublicFacet"]'),
-          ),
-        };
+        ui.setDisabled('form button#claim', true);
+
+        // TODO: route this invitation via the wallet
+        const voterInvitation = await E(board).getValue(
+          ui.getField('input[name="voterInvitation"]'),
+        );
+        const registrarPublicFacet = await E(zoe).getPublicFacet(
+          await E(zoe).getInstance(voterInvitation),
+        );
+
+        E(E(zoe).offer(voterInvitation))
+          .getOfferResult()
+          .then((rights) => voterRights.resolve(rights));
 
         // reset list of questions whenever registrar changes
         questions.splice(0, questions.length);
 
         observeIteration(
-          E(the.registrarPublicFacet).getQuestionSubscription(),
+          E(registrarPublicFacet).getQuestionSubscription(),
           Far('voting observer', {
             /** @param { QuestionDetails } details */
             updateState: gotQuestion,
           }),
         );
-        console.log(
-          'subscribed to questions from',
-          ui.getField('input[name="registrarPublicFacet"]'),
-        );
+
+        console.log('subscribed to questions from', voterInvitation);
+
+        // reset outcomes
+        outcomes.splice(0, outcomes.length);
+        ui.setItems('#outcomes', outcomes);
       },
     ),
   );
+
+  voterRights.promise.then(() => ui.setDisabled('form button#vote', false));
 
   ui.onClick(
     'form button#vote',
@@ -176,26 +239,19 @@ export const main = (
       /** @type { EventListener } */
       async (_ev) => {
         await ui.busy('body', async () => {
-          const the = {
-            question:
-              questions[parseInt(ui.getField('select[name="question"]'), 10)],
-            position: ui.getField('#positions input[type="radio"]:checked'),
-            voterInvitation: await E(board).getValue(
-              ui.getField('input[name="voterInvitation"]'),
-            ),
+          const { questionHandle } =
+            questions[parseInt(ui.getField('select[name="question"]'), 10)];
+          const position = {
+            text: ui.getField('#positions input[type="radio"]:checked'),
           };
 
-          const rightsP = E(E(zoe).offer(the.voterInvitation)).getOfferResult();
-          await E(rightsP).castBallotFor(the.question.questionHandle, [
-            { text: the.position },
+          await E(voterRights.promise).castBallotFor(questionHandle, [
+            position,
           ]);
         });
       },
     ),
   );
-
-  /** @type { string[][] } */
-  const outcomes = [];
 
   ui.onClick(
     'form button#addQuestion',
@@ -219,7 +275,7 @@ export const main = (
               ui.getField('input[name="counterInstallation"]'),
             ),
             secondsTillClose: parseInt(
-              ui.getField('input[name="counterInstallation"]'),
+              ui.getField('input[name="secondsTillClose"]'),
               10,
             ),
           };
@@ -228,6 +284,7 @@ export const main = (
             E(the.timer).getCurrentTimestamp(),
           ]);
 
+          const deadline = current + BigInt(the.secondsTillClose);
           const [issue, ...positions] = the.issue.split('\n');
           /** @type { QuestionSpec } */
           const questionSpec = {
@@ -237,8 +294,8 @@ export const main = (
             electionType: 'survey', // ElectionType.SURVEY,
             maxChoices: 1,
             closingRule: {
-              deadline: current + BigInt(the.secondsTillClose),
-              // a Promise<TimerService> is no good?
+              deadline,
+              // ISSUE: a Promise<TimerService> is no good?
               // Timer must be a timer (an object)
               timer,
             },
@@ -250,19 +307,7 @@ export const main = (
           E(the.creatorFacet)
             .addQuestion(the.counterInstallation, questionSpec)
             .then((qr) => {
-              console.log('question added; standing by for outcome:', qr);
-              E(E(zoe).getPublicFacet(qr.instance))
-                .getOutcome()
-                .then((outcome) => {
-                  console.log('got outcome', issue, outcome);
-                  outcomes.push([issue, outcome]);
-                  ui.setItems('#outcomes', outcomes);
-                })
-                .catch((e) => {
-                  console.error('vote failed', issue, e);
-                  outcomes.push(['vote failed', e.name, e.message]);
-                  ui.setItems('#outcomes', outcomes);
-                });
+              console.log('question added', qr);
             })
             .catch((err) => {
               console.error(err);

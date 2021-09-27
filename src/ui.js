@@ -1,4 +1,5 @@
 // @ts-check
+import { E } from '@agoric/eventual-send';
 
 const { entries } = Object;
 
@@ -101,4 +102,33 @@ export const setupTabs = (ui) => {
       });
     });
   });
+};
+
+// cribbed from https://github.com/Agoric/agoric-sdk/tree/master/packages/wallet-connection#setup
+export const onWalletState = (ev) => {
+  const { walletConnection, state } = ev.detail;
+  console.log('onWalletState', state);
+  switch (state) {
+    case 'idle': {
+      console.log('idle', ev.detail);
+
+      // This is one of the only methods that the wallet connection facet allows.
+      // It connects asynchronously, but you can use promise pipelining immediately.
+      /** @type {ERef<WalletBridge>} */
+      // const bridge = E(walletConnection).getScopedBridge('@@@my dapp');
+
+      // You should reconstruct all state here.
+      // const zoe = E(bridge).getZoe();
+      // ...
+      break;
+    }
+    case 'error': {
+      console.log('error', ev.detail);
+      // In case of an error, reset to 'idle'.
+      // Backoff or other retry strategies would go here instead of immediate reset.
+      E(walletConnection).reset();
+      break;
+    }
+    default:
+  }
 };

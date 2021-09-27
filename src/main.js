@@ -1,7 +1,6 @@
 /* eslint-disable no-debugger */
 // @ts-check
 /* global HTMLSelectElement */
-import '@agoric/install-ses';
 import { E, makeCapTP } from '@agoric/captp';
 import { makePromiseKit } from '@agoric/promise-kit';
 import { observeIteration } from '@agoric/notifier';
@@ -363,10 +362,14 @@ export const creator = (ui, { board, zoe }) => {
 
 /**
  * @param { UI } ui
- * @param { * } net
+ * @param { * } walletBridge
  */
-export const main = (ui, net) => {
-  const chain = networkSetup(ui, net);
+export const main = async (ui, walletBridge) => {
+  const chain = {
+    board: E(walletBridge).getBoard(),
+    zoe: E(walletBridge).getZoe(),
+  };
+  await chain.board; // is this thing on?
   voter(ui, chain);
   registrar(ui, chain);
   creator(ui, chain);

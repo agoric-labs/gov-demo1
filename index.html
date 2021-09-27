@@ -121,19 +121,27 @@ Wed, 10am</textarea>
       </fieldset>
     </form>
   </section>
-  <script type="module">
-    // TODO: factor out ambient authority from network functions
-    import {
-      activateWebSocket,
-      deactivateWebSocket,
-      getActiveSocket,
-    } from './src/utils/fetch-websocket.js';
 
-    import { makeUI, setupTabs } from './src/ui.js';
+  <agoric-wallet-connection></agoric-wallet-connection>
+
+  <button>Connect to Wallet</button>
+
+  <script type="module">
+    import './src/install-ses-lockdown.js';
+    import { E } from '@agoric/eventual-send';
+    import '@agoric/wallet-connection/agoric-wallet-connection.js';
+    import { makeUI, setupTabs, onWalletState } from './src/ui.js';
     import { main } from './src/main.js';
 
     const ui = makeUI(document);
     setupTabs(ui);
-    main(ui, { activateWebSocket, getActiveSocket });
+
+    // Set up event handlers.
+    const awc = document.querySelector('agoric-wallet-connection');
+    awc.addEventListener('state', onWalletState);
+    const walletBridge = E(awc.walletConnection).getScopedBridge('Gov Demo');
+
+    main(ui, walletBridge);
   </script>
+
 </body>

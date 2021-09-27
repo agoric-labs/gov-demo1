@@ -38,10 +38,12 @@
   ],
   "dependencies": {
     "@agoric/captp": "^1.10.5",
+    "@agoric/eventual-send": "^0.13.29",
     "@agoric/governance": "^0.2.3",
-    "@agoric/install-ses": "^0.5.27",
     "@agoric/marshal": "^0.4.27",
     "@agoric/notifier": "^0.3.30",
-    "@agoric/promise-kit": "^0.2.27"
+    "@agoric/promise-kit": "^0.2.27",
+    "@agoric/wallet-connection": "https://gitpkg.now.sh/Agoric/agoric-sdk/packages/wallet-connection",
+    "ses": "^0.14.3"
   }
 }

@@ -154,7 +154,7 @@ export const voter = (ui, { board, zoe }) => {
       .getOutcome()
       .then((outcome) => {
         console.log('got outcome', issue, outcome);
-        outcomes.push([deadlineDisplay, ' ', issue.text, outcome.text]);
+        outcomes.push([deadlineDisplay, ' ', issue.text, ': ', outcome.text]);
         ui.setItems('#outcomes', outcomes);
       })
       .catch((e) => {

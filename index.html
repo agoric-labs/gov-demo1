@@ -129,14 +129,11 @@ Wed, 10am</textarea>
       getActiveSocket,
     } from './src/utils/fetch-websocket.js';
 
-    import { makeUI } from './src/ui.js';
+    import { makeUI, setupTabs } from './src/ui.js';
     import { main } from './src/main.js';
 
-    const net = {
-      activateWebSocket,
-      deactivateWebSocket,
-      getActiveSocket,
-    };
-    main(makeUI(document), net);
+    const ui = makeUI(document);
+    setupTabs(ui);
+    main(ui, { activateWebSocket, getActiveSocket });
   </script>
 </body>

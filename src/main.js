@@ -1,10 +1,11 @@
+/* eslint-disable no-debugger */
 // @ts-check
 /* global HTMLSelectElement */
 import '@agoric/install-ses';
 import { E, makeCapTP } from '@agoric/captp';
 import { makePromiseKit } from '@agoric/promise-kit';
 import { observeIteration } from '@agoric/notifier';
-import { Far, fulfillToStructure } from '@agoric/marshal';
+import { Far } from '@agoric/marshal';
 
 // yarn link and snowpack don't get along?
 // import {
@@ -12,88 +13,76 @@ import { Far, fulfillToStructure } from '@agoric/marshal';
 //   ElectionType,
 //   ChoiceMethod,
 // } from '@agoric/governance/src/question.js';
+// import '@agoric/zoe/exported.js';
 // import '@agoric/governance/exported.js';
 
 /**
- * @param { import('./ui.js').UI } ui
- * @param {*} net
+ * @param {UI} ui
+ * @param {*} io
+ * @typedef { import('./ui.js').UI } UI
  */
-export const main = (
-  ui,
-  { activateWebSocket, deactivateWebSocket, getActiveSocket },
-) => {
-  const networkSetup = () => {
-    let walletAbort;
-    let walletDispatch;
+export const networkSetup = (ui, { activateWebSocket, getActiveSocket }) => {
+  let walletAbort;
+  let walletDispatch;
 
-    const otherSide = harden({
-      needDappApproval: (_origin, _pet) => {
-        console.log('need approval');
-        ui.show('#needDappApproval');
-      },
-      dappApproved: (_origin) => {
-        console.log('approved');
-        ui.hide('#needDappApproval');
-      },
-    });
-
-    const { promise: board, resolve: boardR } = makePromiseKit();
-    const { promise: zoe, resolve: zoeR } = makePromiseKit();
-    const onConnect = async () => {
-      const socket = getActiveSocket();
-      const {
-        abort: ctpAbort,
-        dispatch: ctpDispatch,
-        getBootstrap,
-      } = makeCapTP(
-        'Governance Demo',
-        (obj) => socket.send(JSON.stringify(obj)),
-        otherSide,
-      );
-      walletAbort = ctpAbort;
-      walletDispatch = ctpDispatch;
-      const walletP = getBootstrap();
-
-      boardR(E(walletP).getBoard());
-      zoeR(E(walletP).getZoe());
-    };
-
-    const onDisconnect = () => {
-      // setWalletConnected(false);
-      walletAbort && walletAbort();
-    };
-
-    const onMessage = (data) => {
-      const obj = JSON.parse(data);
-      walletDispatch && walletDispatch(obj);
-    };
-
-    activateWebSocket({
-      onConnect,
-      onDisconnect,
-      onMessage,
-    });
-
-    return { deactivateWebSocket, board, zoe };
-  };
-
-  const { board, zoe } = networkSetup();
-
-  const sections = ['member', 'creator', 'registrar'];
-  sections.forEach((section) => {
-    ui.onChange(`nav input[value="${section}"]`, () => {
-      sections.forEach((candidate) => {
-        if (candidate === section) {
-          ui.show(`section#${section}`);
-        } else {
-          ui.hide(`section#${candidate}`);
-        }
-      });
-    });
+  const otherSide = harden({
+    needDappApproval: (_origin, _pet) => {
+      console.log('need approval');
+      ui.show('#needDappApproval');
+    },
+    dappApproved: (_origin) => {
+      console.log('approved');
+      ui.hide('#needDappApproval');
+    },
   });
 
-  const withCatch = (oops, go) => (ev) => go(ev).catch((err) => oops(err));
+  const { promise: board, resolve: boardR } = makePromiseKit();
+  const { promise: zoe, resolve: zoeR } = makePromiseKit();
+  const onConnect = async () => {
+    const socket = getActiveSocket();
+    const {
+      abort: ctpAbort,
+      dispatch: ctpDispatch,
+      getBootstrap,
+    } = makeCapTP(
+      'Governance Demo',
+      (obj) => socket.send(JSON.stringify(obj)),
+      otherSide,
+    );
+    walletAbort = ctpAbort;
+    walletDispatch = ctpDispatch;
+    const walletP = getBootstrap();
 
+    boardR(E(walletP).getBoard());
+    zoeR(E(walletP).getZoe());
+  };
+
+  const onDisconnect = () => {
+    // setWalletConnected(false);
+    walletAbort && walletAbort();
+  };
+
+  const onMessage = (data) => {
+    const obj = JSON.parse(data);
+    walletDispatch && walletDispatch(obj);
+  };
+
+  activateWebSocket({
+    onConnect,
+    onDisconnect,
+    onMessage,
+  });
+
+  return { board, zoe };
+};
+
+const withCatch = (oops, go) => (ev) => go(ev).catch((err) => oops(err));
+
+/**
+ * @param { UI } ui
+ * @param {{ board: any, zoe: ERef<ZoeService> } } chain
+ */
+export const voter = (ui, { board, zoe }) => {
   /** @type { QuestionDetails[] } */
   const questions = [];
   /** @type { string[][] } */
@@ -252,7 +241,13 @@ export const main = (
       },
     ),
   );
+};
 
+/**
+ * @param { UI } ui
+ * @param {{ board: any, zoe: ERef<ZoeService> } } chain
+ */
+export const registrar = (ui, { board }) => {
   ui.onClick(
     'form button#addQuestion',
     withCatch(
@@ -317,7 +312,13 @@ export const main = (
       },
     ),
   );
+};
 
+/**
+ * @param { UI } ui
+ * @param {{ board: any, zoe: ERef<ZoeService> } } chain
+ */
+export const creator = (ui, { board, zoe }) => {
   ui.onClick(
     'form button#createRegistrar',
     withCatch(
@@ -360,4 +361,13 @@ export const main = (
   );
 };
 
-console.log({ E, makeCapTP });
+/**
+ * @param { UI } ui
+ * @param { * } net
+ */
+export const main = (ui, net) => {
+  const chain = networkSetup(ui, net);
+  voter(ui, chain);
+  registrar(ui, chain);
+  creator(ui, chain);
+};

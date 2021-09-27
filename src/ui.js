@@ -84,3 +84,21 @@ export const makeUI = (document) => {
     },
   };
 };
+
+/**
+ * @param {UI} ui
+ */
+export const setupTabs = (ui) => {
+  const sections = ['member', 'creator', 'registrar'];
+  sections.forEach((section) => {
+    ui.onChange(`nav input[value="${section}"]`, () => {
+      sections.forEach((candidate) => {
+        if (candidate === section) {
+          ui.show(`section#${section}`);
+        } else {
+          ui.hide(`section#${candidate}`);
+        }
+      });
+    });
+  });
+};

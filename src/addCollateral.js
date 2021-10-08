@@ -6,24 +6,174 @@ import { E } from '@agoric/eventual-send';
 import '@agoric/zoe/exported.js';
 
 import { makeRatio } from '@agoric/zoe/src/contractSupport/index.js';
-import { AmountMath, AssetKind } from '@agoric/ertp';
+import { AmountMath } from '@agoric/ertp';
+
+/**
+ * @typedef { import('@agoric/eventual-send').ERef<T> } ERef<T>
+ * @template T
+ */
+
+import '@agoric/ertp/exported.js';
 
 // addCollateral.js runs in an ephemeral Node.js outside of swingset. The
 // spawner runs within ag-solo, so is persistent.  Once the deploy.js
 // script ends, connections to any of its objects are severed.
 
-/**
- * @typedef {Object} Board
- * @property {(id: string) => any} getValue
- * @property {(value: any) => string} getId
- * @property {(value: any) => boolean} has
- * @property {() => [string]} ids
- */
+const { details: X } = assert;
 
 const BASIS_POINTS_DENOM = 10000n;
 
+const makeMemo = (scratch) => {
+  /**
+   * @param {string} key
+   * @param {() => Promise<T>} thunk
+   * @returns {Promise<T>}
+   * @template T
+   */
+  const memo = async (key, thunk) => {
+    const found = await scratch.get(key);
+    if (found) {
+      return found;
+    }
+    const value = await thunk();
+    await scratch.set(key, value);
+    return value;
+  };
+  return memo;
+};
+
 /**
- * @typedef {{ zoe: ZoeService, board: Board, spawner, wallet, uploads, http }} Home
+ * @param {*} walletAdmin
+ * @param {Petname} petname
+ * @param {bigint} denom
+ * @typedef { string | string[] } Petname
+ */
+const withdrawPart = async (walletAdmin, petname, denom) => {
+  /** @type { Promise<Issuer> } */
+  const issuerP = E(walletAdmin).getIssuer(petname);
+  const [issuer, brand] = await Promise.all([issuerP, E(issuerP).getBrand()]);
+
+  /** @type {[string, Purse][]} */
+  const purses = await E(walletAdmin).getPurses();
+
+  const purseBrands = await Promise.all(
+    purses.map(([_name, p]) => E(p).getAllegedBrand()),
+  );
+  console.log(purseBrands, purses);
+
+  const [purseName, purse] =
+    purses.find((_, i) => purseBrands[i] === brand) ||
+    assert.fail(X`no purse with brand ${brand}`);
+
+  console.log('Withdrawing from', purseName);
+  const { value } = await E(purse).getCurrentAmount();
+  assert.typeof(value, 'bigint');
+  const payment = E(purse).withdraw(AmountMath.make(brand, value / denom));
+
+  return { payment, issuer, brand };
+};
+
+/**
+ * @param {Petname} issuerPetname
+ * @param {bigint} brandDecimalPlaces
+ * @param {Issuer} issuer
+ * @param {ERef<Payment>} collateral
+ * @param {Brand} brand
+ * @param {{ central: Brand, gov: Brand}} brands
+ * @param {{ zoe: ERef<ZoeService>, treasuryCreator: any }} powers
+ */
+const addCollateralType = async (
+  issuerPetname,
+  brandDecimalPlaces,
+  issuer,
+  collateral,
+  brand,
+  { central, gov },
+  { zoe, treasuryCreator },
+) => {
+  const amount = await E(issuer).getAmountOf(collateral);
+
+  const rates = {
+    initialPrice: makeRatio(
+      34_610_000n,
+      central,
+      10n ** brandDecimalPlaces,
+      brand,
+    ),
+    initialMargin: makeRatio(150n, central),
+    liquidationMargin: makeRatio(125n, central),
+    interestRate: makeRatio(250n, central, BASIS_POINTS_DENOM),
+    loanFee: makeRatio(1n, central, BASIS_POINTS_DENOM),
+  };
+
+  const addTypeInvitation = await E(treasuryCreator).makeAddTypeInvitation(
+    issuer,
+    `Peg${issuerPetname}`,
+    rates,
+  );
+
+  const seat = E(zoe).offer(
+    addTypeInvitation,
+    harden({
+      give: {
+        Collateral: amount,
+      },
+      want: {
+        // We just throw away our governance tokens.
+        Governance: AmountMath.makeEmpty(gov),
+      },
+    }),
+    harden({
+      Collateral: collateral,
+    }),
+  );
+
+  // const payout = await E(seat).getPayout('Collateral');
+  // await E(scratch).set('collateralPayout', payout);
+  await E(seat).getOfferResult();
+};
+
+/**
+ * @param {ERef<ZoeService>} zoe
+ * @param {*} agoricNames
+ * @param {Brand} brand
+ * @param {Brand} centralBrand
+ * @param {*} priceAuthorityAdmin
+ */
+const registerPriceAuthorities = async (
+  zoe,
+  agoricNames,
+  brand,
+  centralBrand,
+  priceAuthorityAdmin,
+) => {
+  const ammInstance = await E(agoricNames).lookup('instance', 'autoswap');
+  const ammPublicFacetP = E(zoe).getPublicFacet(ammInstance);
+
+  console.log('Registering AMM-based price authorities');
+  const { toCentral, fromCentral } = await E(
+    ammPublicFacetP,
+  ).getPriceAuthorities(brand);
+  const [paToCentral, paFromCentral] = await Promise.all([
+    toCentral,
+    fromCentral,
+  ]);
+  await Promise.all([
+    E(priceAuthorityAdmin).registerPriceAuthority(
+      paToCentral,
+      brand,
+      centralBrand,
+    ),
+    E(priceAuthorityAdmin).registerPriceAuthority(
+      paFromCentral,
+      centralBrand,
+      brand,
+    ),
+  ]);
+};
+
+/**
+ * @typedef {{ zoe: ZoeService, agoricNames, wallet, scratch, treasuryCreator, priceAuthorityAdmin}} Home
  * @param {Promise<Home>} homePromise
  * A promise for the references available from REPL home
  */
@@ -49,102 +199,38 @@ export default async function deployApi(homePromise) {
     wallet,
   } = home;
 
-  // const issuerPetname = 'USDC';
-  // const brandDecimalPlaces = 18n;
-  const issuerPetname = 'ATOM';
+  const issuerPetname = 'FungibleFaucet.Token'.split('.');
   const brandDecimalPlaces = 2n;
 
-  console.log(`Retrieving issuers for ${issuerPetname} and brands`);
-  // const issuer = await E(board).getValue('');
-  const walletAdmin = E(wallet).getAdminFacet();
-
-  const issuerP = E(walletAdmin).getIssuer(issuerPetname);
   const feeIssuerP = E(zoe).getFeeIssuer();
-  const [
-    govBrand,
-    feeBrand,
-    issuer,
-    brand,
-    purses,
-    ammInstance,
-  ] = await Promise.all([
-    E(agoricNames).lookup('brand', 'TreasuryGovernance'),
-    E(feeIssuerP).getBrand(),
-    issuerP,
-    E(issuerP).getBrand(),
-    E(walletAdmin).getPurses(),
-    E(agoricNames).lookup('instance', 'autoswap'),
-  ]);
+  const memo = makeMemo(scratch);
 
-  const ammPublicFacetP = E(zoe).getPublicFacet(ammInstance);
+  const [{ payment: collateral, issuer, brand }, govBrand, centralBrand] =
+    await Promise.all([
+      memo('collateralPayment', async () =>
+        withdrawPart(E(wallet).getAdminFacet(), issuerPetname, 2n),
+      ),
+      E(agoricNames).lookup('brand', 'TreasuryGovernance'),
+      E(feeIssuerP).getBrand(),
+    ]);
 
-  const rates = {
-    initialPrice: makeRatio(
-      34_610_000n,
-      feeBrand,
-      10n ** brandDecimalPlaces,
-      brand,
-    ),
-    initialMargin: makeRatio(150n, feeBrand),
-    liquidationMargin: makeRatio(125n, feeBrand),
-    interestRate: makeRatio(250n, feeBrand, BASIS_POINTS_DENOM),
-    loanFee: makeRatio(1n, feeBrand, BASIS_POINTS_DENOM),
-  };
-
-  let payment = await E(scratch).get('collateralPayment');
-  if (!payment) {
-    // Withdraw payment.
-    const purseBrands = await Promise.all(
-      purses.map(([_name, p]) => E(p).getAllegedBrand()),
-    );
-    console.log(purseBrands, purses);
-    const [purseName, purse] = purses.find((_, i) => purseBrands[i] === brand);
-    console.log('Withdrawing from', purseName);
-    const { value } = await E(purse).getCurrentAmount(purse);
-    payment = await E(purse).withdraw(AmountMath.make(brand, value / 2n));
-    await E(scratch).set('collateralPayment', payment);
-  }
-
-  const amount = await E(issuer).getAmountOf(payment);
-
-  const proposal = harden({
-    give: {
-      Collateral: amount,
-    },
-    want: {
-      // We just throw away our governance tokens.
-      Governance: AmountMath.makeEmpty(govBrand, AssetKind.NAT),
-    },
-  });
-  const paymentKeywords = harden({
-    Collateral: payment,
-  });
-
-  const addTypeInvitation = await E(treasuryCreator).makeAddTypeInvitation(
-    issuer,
-    `Peg${issuerPetname}`,
-    rates,
-  );
-  const seat = E(zoe).offer(addTypeInvitation, proposal, paymentKeywords);
-
-  // const payout = await E(seat).getPayout('Collateral');
-  // await E(scratch).set('collateralPayout', payout);
-  await E(seat).getOfferResult();
-
-  console.log('Registering AMM-based price authorities');
-  const { toCentral, fromCentral } = await E(
-    ammPublicFacetP,
-  ).getPriceAuthorities(brand);
-  const [paToCentral, paFromCentral] = await Promise.all([
-    toCentral,
-    fromCentral,
-  ]);
   await Promise.all([
-    E(priceAuthorityAdmin).registerPriceAuthority(paToCentral, brand, feeBrand),
-    E(priceAuthorityAdmin).registerPriceAuthority(
-      paFromCentral,
-      feeBrand,
+    addCollateralType(
+      issuerPetname,
+      brandDecimalPlaces,
+      issuer,
+      collateral,
       brand,
+      { central: centralBrand, gov: govBrand },
+      { zoe, treasuryCreator },
+    ),
+
+    registerPriceAuthorities(
+      zoe,
+      agoricNames,
+      brand,
+      centralBrand,
+      priceAuthorityAdmin,
     ),
   ]);
 }

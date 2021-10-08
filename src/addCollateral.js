@@ -31,12 +31,12 @@ const makeMemo = (scratch) => {
    * @template T
    */
   const memo = async (key, thunk) => {
-    const found = await scratch.get(key);
+    const found = await E(scratch).get(key);
     if (found) {
       return found;
     }
     const value = await thunk();
-    await scratch.set(key, value);
+    await E(scratch).set(key, value);
     return value;
   };
   return memo;
@@ -74,7 +74,7 @@ const withdrawPart = async (walletAdmin, petname, denom) => {
 };
 
 /**
- * @param {Petname} issuerPetname
+ * @param {string} issuerPetname
  * @param {bigint} brandDecimalPlaces
  * @param {Issuer} issuer
  * @param {ERef<Payment>} collateral
@@ -214,23 +214,21 @@ export default async function deployApi(homePromise) {
       E(feeIssuerP).getBrand(),
     ]);
 
-  await Promise.all([
-    addCollateralType(
-      issuerPetname,
-      brandDecimalPlaces,
-      issuer,
-      collateral,
-      brand,
-      { central: centralBrand, gov: govBrand },
-      { zoe, treasuryCreator },
-    ),
+  await addCollateralType(
+    typeof issuerPetname === 'string' ? issuerPetname : issuerPetname.join(''),
+    brandDecimalPlaces,
+    issuer,
+    collateral,
+    brand,
+    { central: centralBrand, gov: govBrand },
+    { zoe, treasuryCreator },
+  );
 
-    registerPriceAuthorities(
-      zoe,
-      agoricNames,
-      brand,
-      centralBrand,
-      priceAuthorityAdmin,
-    ),
-  ]);
+  await registerPriceAuthorities(
+    zoe,
+    agoricNames,
+    brand,
+    centralBrand,
+    priceAuthorityAdmin,
+  );
 }

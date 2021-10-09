@@ -7,11 +7,7 @@ import { observeIteration } from '@agoric/notifier';
 import { Far } from '@agoric/marshal';
 
 // yarn link and snowpack don't get along?
-// import {
-//   QuorumRule,
-//   ElectionType,
-//   ChoiceMethod,
-// } from '@agoric/governance/src/question.js';
+import { QuorumRule, ElectionType, ChoiceMethod } from '@agoric/governance';
 // import '@agoric/zoe/exported.js';
 // import '@agoric/governance/exported.js';
 
@@ -19,9 +15,6 @@ import { Far } from '@agoric/marshal';
  * @typedef { import('@agoric/eventual-send').ERef<T>} ERef<T>
  * @template T
  */
-// TODO: get typescript to cooperate
-/** @typedef { * } QuestionDetails */
-/** @typedef { * } QuestionSpec */
 
 /**
  * @param {UI} ui
@@ -291,10 +284,10 @@ export const registrar = (ui, { board }) => {
           const [issue, ...positions] = the.issue.split('\n');
           /** @type { QuestionSpec } */
           const questionSpec = {
-            method: 'unranked', // ChoiceMethod.UNRANKED,
+            method: ChoiceMethod.UNRANKED,
             issue: { text: issue },
             positions: positions.map((text) => ({ text })),
-            electionType: 'survey', // ElectionType.SURVEY,
+            electionType: ElectionType.SURVEY,
             maxChoices: 1,
             closingRule: {
               deadline,
@@ -302,7 +295,7 @@ export const registrar = (ui, { board }) => {
               // Timer must be a timer (an object)
               timer,
             },
-            quorumRule: 'majority', // QuorumRule.MAJORITY,
+            quorumRule: QuorumRule.MAJORITY,
             tieOutcome: { text: positions[0] },
           };
 

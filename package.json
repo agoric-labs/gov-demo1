@@ -48,6 +48,7 @@
     "@agoric/promise-kit": "^0.2.27",
     "@agoric/wallet-connection": "https://gitpkg.now.sh/Agoric/agoric-sdk/packages/wallet-connection",
     "@agoric/zoe": "^0.19.1",
+    "import-meta-resolve": "^1.1.1",
     "ses": "^0.14.3"
   }
 }

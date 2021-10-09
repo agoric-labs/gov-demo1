@@ -42,7 +42,7 @@
     "@agoric/captp": "^1.10.5",
     "@agoric/ertp": "^0.12.1",
     "@agoric/eventual-send": "^0.13.29",
-    "@agoric/governance": "^0.2.3",
+    "@agoric/governance": "./vendor/agoric-governance-v0.2.4.tgz",
     "@agoric/marshal": "^0.4.27",
     "@agoric/notifier": "^0.3.30",
     "@agoric/promise-kit": "^0.2.27",

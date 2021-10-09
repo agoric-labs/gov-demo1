@@ -68,10 +68,9 @@
   resolved "https://registry.yarnpkg.com/@agoric/eventual-send/-/eventual-send-0.13.29.tgz#8179960c110b80bc8f2c8c5d3afafc61542ef9af"
   integrity sha512-3mSNwtyNxCo9nFZUCatH5fv7OfxNcvu5/GksxRvqRt1L+ARc69xiLCfX/est4LL87wMX+h/9TLSXx2JE/2mL0g==
 
-"@agoric/governance@^0.2.3":
-  version "0.2.3"
-  resolved "https://registry.yarnpkg.com/@agoric/governance/-/governance-0.2.3.tgz#c1af87d6251f17a4829da408510ddfb60c479a69"
-  integrity sha512-EPhFKrDSCW3zGXwSRMzJy8e+9f4+cEEqU7wbc89ATv1uC9HLw5wbF2sn6/WkiBYvG0c1JHrNBEJyNZvg7cZGAg==
+"@agoric/governance@./vendor/agoric-governance-v0.2.4.tgz":
+  version "0.2.4"
+  resolved "./vendor/agoric-governance-v0.2.4.tgz#f276b2ee4bfbcf06f2299b32dd5a7ac5b0445784"
   dependencies:
     "@agoric/assert" "^0.3.13"
     "@agoric/captp" "^1.10.5"

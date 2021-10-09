@@ -1,4 +1,6 @@
 {
+  "type": "module",
+  "main": "./src/main.js",
   "scripts": {
     "start": "snowpack dev",
     "build": "snowpack build",

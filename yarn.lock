@@ -190,7 +190,7 @@
 
 "@agoric/wallet-connection@https://gitpkg.now.sh/Agoric/agoric-sdk/packages/wallet-connection":
   version "0.1.0"
-  resolved "https://gitpkg.now.sh/Agoric/agoric-sdk/packages/wallet-connection#f5a4b54bcf710d5accbf0a4ca09f7bf60d66300a"
+  resolved "https://gitpkg.now.sh/Agoric/agoric-sdk/packages/wallet-connection#420b71adf88dc2436aca01e4454616b94234d5ee"
   dependencies:
     "@agoric/assert" "^0.3.11"
     "@agoric/captp" "^1.10.3"

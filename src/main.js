@@ -251,6 +251,47 @@ export const voter = (ui, { board, zoe }) => {
  */
 export const registrar = (ui, { board }) => {
   ui.onClick(
+    'form button#voteOnParamChange',
+    withCatch(
+      (err) => {
+        debugger;
+        console.log(err);
+      },
+      async (_ev) => {
+        const form = {
+          governor: E(board).getValue(ui.getField('input[name="governor"]')),
+          counterInstallation: E(board).getValue(
+            ui.getField('input[name="counterInstallation"]'),
+          ),
+          timer: E(board).getValue(
+            ui.getField('input[name="chainTimerService"]'),
+          ),
+          key: ui.getField('textarea[name="key"]'),
+          parameterName: ui.getField('textarea[name="parameterName"]'),
+          collateralP: E(board).getValue(
+            ui.getField('textarea[name="collateral"]'),
+          ),
+          secondsTillClose: parseInt(
+            ui.getField('input[name="secondsTillClose"]'),
+            10,
+          ),
+        };
+        const paramSpec = { key: form.key, parameterName: form.parameterName };
+        const proposedValue = await form.collateralP;
+        console.log('proposing parameter change', { paramSpec, proposedValue });
+        const current = await E(form.timer).getCurrentTimestamp();
+        const deadline = current + BigInt(form.secondsTillClose);
+        E(form.governor).voteOnParamChange(
+          paramSpec,
+          proposedValue,
+          form.counterInstallation,
+          deadline,
+        );
+      },
+    ),
+  );
+
+  ui.onClick(
     'form button#addQuestion',
     withCatch(
       (err) => {

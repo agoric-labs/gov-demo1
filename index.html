@@ -106,6 +106,27 @@
   <section id='registrar' class='hidden'>
     <form>
       <fieldset>
+        <legend>Add Collateral</legend>
+        <label>Contract Governor boardID: <input name='governor' /></label>
+
+        <label><em>Counter Installation boardID: see below</em></label>
+        <label><em>chainTimerService boardID: see below</em></label>
+
+        <label>Parameter Key: <input name='key' /></label>
+        <label>Parameter Name: <input name='parameterName' value='Collateral' /></label>
+        <label>Collateral Issuer boardID: <input name='collateral' /></label>
+
+        <label>Seconds till close of votes: <input name='secondsTillCollateralClose' value='120' /></label>
+
+        <button type="button" id='voteOnParamChange'>Propose Parameter Change</button>
+        <hr />
+      </fieldset>
+    </form>
+
+    <hr />
+
+    <form>
+      <fieldset>
         <legend>Add Question</legend>
         <p><em>Enter the question on the first line and each option on a separate line following.</em></p>
         <textarea name='issue' rows='6' cols='80'>When shall we meet?

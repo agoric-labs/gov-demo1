@@ -16,6 +16,14 @@ import { Far } from '@agoric/marshal';
 // import '@agoric/governance/exported.js';
 
 /**
+ * @typedef { import('@agoric/eventual-send').ERef<T>} ERef<T>
+ * @template T
+ */
+// TODO: get typescript to cooperate
+/** @typedef { * } QuestionDetails */
+/** @typedef { * } QuestionSpec */
+
+/**
  * @param {UI} ui
  * @param {*} io
  * @typedef { import('./ui.js').UI } UI
@@ -75,6 +83,11 @@ export const networkSetup = (ui, { activateWebSocket, getActiveSocket }) => {
   return { board, zoe };
 };
 
+/**
+ * @param {(err: Error) => void} oops
+ * @param {(ev: Event) => Promise<void>} go
+ * @returns {EventListener}
+ */
 const withCatch = (oops, go) => (ev) => go(ev).catch((err) => oops(err));
 
 /**
@@ -124,7 +137,6 @@ export const voter = (ui, { board, zoe }) => {
       'select[name="question"]',
       withCatch(
         (err) => console.error(err),
-        /** @type { EventListener } */
         async (ev) => {
           assert(ev.target);
           assert(ev.target instanceof HTMLSelectElement);
@@ -179,7 +191,6 @@ export const voter = (ui, { board, zoe }) => {
         debugger;
         console.log(err);
       },
-      /** @type { EventListener } */
       async (_ev) => {
         ui.setDisabled('form button#claim', true);
 
@@ -224,7 +235,6 @@ export const voter = (ui, { board, zoe }) => {
         debugger;
         console.log(err);
       },
-      /** @type { EventListener } */
       async (_ev) => {
         await ui.busy('body', async () => {
           const { questionHandle } =
@@ -254,7 +264,6 @@ export const registrar = (ui, { board }) => {
         debugger;
         console.log(err);
       },
-      /** @type { EventListener } */
       async (_ev) => {
         await ui.busy('body', async () => {
           const the = {

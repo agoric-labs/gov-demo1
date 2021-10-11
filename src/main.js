@@ -417,7 +417,6 @@ export const main = async (ui, walletBridge) => {
     board: E(walletBridge).getBoard(),
     zoe: E(walletBridge).getZoe(),
   };
-  await chain.board; // is this thing on?
   voter(ui, chain);
   registrar(ui, chain);
   creator(ui, chain);

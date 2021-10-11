@@ -164,7 +164,9 @@ Wed, 10am</textarea>
     const walletBridge = startWallet(document);
     const ui = makeUI(document);
     setupTabs(ui);
-    main(ui, walletBridge);
+    main(ui, walletBridge)
+      .then(() => console.log('ready.'))
+      .catch(err => console.error(err));
   </script>
 
 </body>

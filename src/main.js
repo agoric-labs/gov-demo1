@@ -271,10 +271,10 @@ export const registrar = (ui, { board }) => {
           timer: E(board).getValue(
             ui.getField('input[name="chainTimerService"]'),
           ),
-          key: ui.getField('textarea[name="key"]'),
-          parameterName: ui.getField('textarea[name="parameterName"]'),
+          key: ui.getField('input[name="key"]'),
+          parameterName: ui.getField('input[name="parameterName"]'),
           collateralP: E(board).getValue(
-            ui.getField('textarea[name="collateral"]'),
+            ui.getField('input[name="collateral"]'),
           ),
           secondsTillClose: parseInt(
             ui.getField('input[name="secondsTillClose"]'),

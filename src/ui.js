@@ -1,5 +1,6 @@
 // @ts-check
 import { E } from '@agoric/eventual-send';
+import '@agoric/wallet-connection/agoric-wallet-connection.js';
 
 const { entries } = Object;
 
@@ -131,4 +132,21 @@ export const onWalletState = (ev) => {
     }
     default:
   }
+};
+
+/**
+ * @param {Document} document
+ * @typedef {{
+ *   walletConnection: {
+ *     getScopedBridge: (name: string) => unknown,
+ *   }
+ * }} WalletConnection
+ */
+export const startWallet = (document) => {
+  // Set up event handlers.
+  /** @type { (Element & WalletConnection) | null } */
+  const awc = document.querySelector('agoric-wallet-connection');
+  assert(awc);
+  awc.addEventListener('state', onWalletState);
+  return E(awc.walletConnection).getScopedBridge('Gov Demo');
 };

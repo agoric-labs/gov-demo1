@@ -158,19 +158,12 @@ Wed, 10am</textarea>
 
   <script type="module">
     import './src/install-ses-lockdown.js';
-    import { E } from '@agoric/eventual-send';
-    import '@agoric/wallet-connection/agoric-wallet-connection.js';
-    import { makeUI, setupTabs, onWalletState } from './src/ui.js';
+    import { makeUI, setupTabs, startWallet } from './src/ui.js';
     import { main } from './src/main.js';
 
+    const walletBridge = startWallet(document);
     const ui = makeUI(document);
     setupTabs(ui);
-
-    // Set up event handlers.
-    const awc = document.querySelector('agoric-wallet-connection');
-    awc.addEventListener('state', onWalletState);
-    const walletBridge = E(awc.walletConnection).getScopedBridge('Gov Demo');
-
     main(ui, walletBridge);
   </script>
 

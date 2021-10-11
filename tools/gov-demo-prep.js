@@ -3,6 +3,7 @@ import { E } from '@agoric/eventual-send';
 import { resolve as importMetaResolve } from 'import-meta-resolve';
 import { AmountMath } from '@agoric/ertp';
 
+import '@agoric/ertp/exported.js';
 import '@agoric/zoe/exported.js';
 
 const pursePetnames = {
@@ -80,6 +81,13 @@ async function allocateFees(home) {
   }
 
   console.log('purses:', await E(wallet).getPurses());
+  /** @type { ERef<Purse> } */
+  const feePurse = E(faucet).getFeePurse(); // faucet? why?
+  const feesAvailable = await E(feePurse).getCurrentAmount();
+  console.log({ feesAvailable });
+  if (feesAvailable.value > 10_000_000n) {
+    return feesAvailable;
+  }
 
   const runPurse = E(wallet).getPurse(pursePetnames.RUN);
 
@@ -95,7 +103,6 @@ async function allocateFees(home) {
   console.error(
     `collect-votes: depositing ${disp(someRun)} into the fee purse`,
   );
-  const feePurse = E(faucet).getFeePurse(); // faucet? why?
   const feePayment = await E(runPurse).withdraw(someRun);
   await E(feePurse).deposit(feePayment);
   return E(feePurse).getCurrentAmount();

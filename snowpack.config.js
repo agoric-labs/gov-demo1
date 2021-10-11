@@ -3,7 +3,7 @@
 
 /** @type {import("snowpack").SnowpackUserConfig } */
 export default {
-  exclude: ['**/.git/**/*'],
+  exclude: ['**/.git/**/*', '**/tools/**/*'],
   mount: {
     /* ... */
   },
@@ -11,7 +11,7 @@ export default {
     /* ... */
   ],
   packageOptions: {
-    /* ... */
+    external: ['import-meta-resolve', '@agoric/zoe', '@agoric/governance'],
   },
   devOptions: {
     /* ... */

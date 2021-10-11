@@ -7,9 +7,14 @@ import { observeIteration } from '@agoric/notifier';
 import { Far } from '@agoric/marshal';
 
 // yarn link and snowpack don't get along?
-import { QuorumRule, ElectionType, ChoiceMethod } from '@agoric/governance';
+// import { QuorumRule, ElectionType, ChoiceMethod } from '@agoric/governance';
 // import '@agoric/zoe/exported.js';
 // import '@agoric/governance/exported.js';
+
+// Avoid packing all of governance, zoe into the web runtime.
+const ChoiceMethod = { UNRANKED: 'unranked' };
+const ElectionType = { SURVEY: 'survey' };
+const QuorumRule = { MAJORITY: 'majority' };
 
 /**
  * @typedef { import('@agoric/eventual-send').ERef<T>} ERef<T>

@@ -5,6 +5,9 @@ import { AmountMath } from '@agoric/ertp';
 
 import '@agoric/ertp/exported.js';
 import '@agoric/zoe/exported.js';
+import '@agoric/governance/exported.js';
+
+import { makeInitialValues } from './governedContract.js';
 
 const pursePetnames = {
   RUN: 'Agoric RUN currency',
@@ -80,9 +83,10 @@ async function allocateFees(home) {
     return stringifyNat(amount.value, 6, 6);
   }
 
-  console.log('purses:', await E(wallet).getPurses());
+  // console.log('purses:', await E(wallet).getPurses());
   /** @type { ERef<Purse> } */
   const feePurse = E(faucet).getFeePurse(); // faucet? why?
+  console.log('await feesAvailable...');
   const feesAvailable = await E(feePurse).getCurrentAmount();
   console.log({ feesAvailable });
   if (feesAvailable.value > 10_000_000n) {
@@ -92,6 +96,7 @@ async function allocateFees(home) {
   const runPurse = E(wallet).getPurse(pursePetnames.RUN);
 
   console.error(`allocateFees: getCurrentAmount`);
+  console.log('await runPurse currentAmount...');
   const run = await E(runPurse).getCurrentAmount();
   if (AmountMath.isEmpty(run)) {
     throw Error(`no RUN, collect-votes cannot proceed`);
@@ -109,8 +114,28 @@ async function allocateFees(home) {
 }
 
 /**
+ * @param {ERef<ZoeService>} zoe
+ * @param {Record<string, Installation>} installations
+ * @param {Brand} brand
+ */
+const startElectorate = async (zoe, installations, brand) => {
+  const electorateTerms = {
+    committeeName: 'The Three Stooges',
+    committeeSize: 3,
+    brands: { Central: brand },
+  };
+  /** @type {{ creatorFacet: GovernedContractFacetAccess, instance: Instance }} */
+  const { creatorFacet: electorateCreatorFacet, instance: electorateInstance } =
+    await E(zoe).startInstance(installations.committee, {}, electorateTerms);
+  return { electorateCreatorFacet, electorateInstance };
+};
+
+/**
  * @param {ERef<Home>} homeP
- * @param {{ bundleSource: (path: string) => Promise<Bundle> }} deployPowers
+ * @param {{
+ *   bundleSource: (path: string) => Promise<Bundle>,
+ *   resolvePath: (ref: string) => string,
+ * }} deployPowers
  * @typedef {{
  *   chainTimerService: ERef<Timer>,
  *   scratch: ERef<Store>,
@@ -126,28 +151,62 @@ async function allocateFees(home) {
  */
 export default async function deploy(homeP, { bundleSource }) {
   const home = await homeP;
-  await allocateFees(home);
+  const availableFees = await allocateFees(home);
 
-  const { board, zoe } = home;
+  const { board, zoe, chainTimerService: timer } = home;
 
   /** @param { string } specifier */
   const bundle = (specifier) =>
     importMetaResolve(specifier, import.meta.url).then((url) =>
       bundleSource(new URL(url).pathname),
     );
+  console.log('await bundle contracts...');
   const bundles = await allValues({
     committee: bundle(`@agoric/governance/src/committee.js`),
 
     binaryVoteCounter: bundle(`@agoric/governance/src/binaryVoteCounter.js`),
     contractGovernor: bundle(`@agoric/governance/src/contractGovernor.js`),
+    governedContract: bundle(`./governedContract.js`),
   });
 
+  console.log('await install contracts...');
   const installations = await allValues(
     mapValues(bundles, (b) => E(zoe).install(b)),
   );
 
+  console.log('await start electorate...');
+  const { electorateCreatorFacet, electorateInstance } = await startElectorate(
+    zoe,
+    installations,
+    availableFees.brand,
+  );
+
+  const terms = {
+    timer,
+    electorateInstance,
+    governedContractInstallation: installations.governedContract,
+    governed: {
+      issuerKeywordRecord: {},
+      terms: {
+        main: makeInitialValues(availableFees.brand),
+        initialBrand: availableFees.brand,
+      },
+    },
+  };
+  const privateArgs = { electorateCreatorFacet };
+  console.log('await start contractGovernor...');
+  /** @type {{ creatorFacet: GovernedContractFacetAccess, instance: Instance }} */
+  const { creatorFacet: governor, instance: governorInstance } = await E(
+    zoe,
+  ).startInstance(installations.contractGovernor, {}, terms, privateArgs);
+  const governedInstance = await E(governor).getInstance();
+
+  console.log('await get board Ids...');
   const boardIds = await allValues(
-    mapValues(installations, (inst) => E(board).getId(inst)),
+    mapValues(
+      { governor, governorInstance, governedInstance, ...installations },
+      (inst) => E(board).getId(inst),
+    ),
   );
 
   console.log(boardIds);

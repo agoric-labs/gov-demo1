@@ -264,34 +264,36 @@ export const registrar = (ui, { board }) => {
       },
       async (_ev) => {
         const form = {
-          governor: E(board).getValue(ui.getField('input[name="governor"]')),
-          counterInstallation: E(board).getValue(
-            ui.getField('input[name="counterInstallation"]'),
-          ),
-          timer: E(board).getValue(
-            ui.getField('input[name="chainTimerService"]'),
-          ),
+          governor: ui.getField('input[name="governor"]'),
+          counterInstallation: ui.getField('input[name="counterInstallation"]'),
+          timer: ui.getField('input[name="chainTimerService"]'),
           key: ui.getField('input[name="key"]'),
           parameterName: ui.getField('input[name="parameterName"]'),
-          collateralP: E(board).getValue(
-            ui.getField('input[name="collateral"]'),
-          ),
+          collateral: ui.getField('input[name="collateral"]'),
           secondsTillClose: parseInt(
             ui.getField('input[name="secondsTillClose"]'),
             10,
           ),
         };
+        const lookup = (id) => E(board).getValue(id);
         const paramSpec = { key: form.key, parameterName: form.parameterName };
-        const proposedValue = await form.collateralP;
-        console.log('proposing parameter change', { paramSpec, proposedValue });
-        const current = await E(form.timer).getCurrentTimestamp();
+        console.log('await form values: collateral, time, counter...');
+        const [proposedValue, current, counter] = await Promise.all([
+          lookup(form.collateral),
+          E(lookup(form.timer)).getCurrentTimestamp(),
+          lookup(form.counterInstallation),
+        ]);
+        console.log('proposing change...', { paramSpec, proposedValue });
         const deadline = current + BigInt(form.secondsTillClose);
-        E(form.governor).voteOnParamChange(
+        /** @type {ERef<GovernedContractFacetAccess>} */
+        const governor = lookup(form.governor);
+        const result = await E(governor).voteOnParamChange(
           paramSpec,
           proposedValue,
-          form.counterInstallation,
+          counter,
           deadline,
         );
+        console.log({ result });
       },
     ),
   );

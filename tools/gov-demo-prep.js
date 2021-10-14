@@ -2,12 +2,18 @@
 import { E } from '@agoric/eventual-send';
 import { resolve as importMetaResolve } from 'import-meta-resolve';
 import { AmountMath } from '@agoric/ertp';
+import { governedParameterTerms } from '@agoric/treasury/src/params.js';
 
 import '@agoric/ertp/exported.js';
 import '@agoric/zoe/exported.js';
 import '@agoric/governance/exported.js';
+import '@agoric/vats/exported.js';
 
-import { makeInitialValues } from './governedContract.js';
+const SECONDS_PER_HOUR = 60n * 60n;
+const SECONDS_PER_DAY = 24n * SECONDS_PER_HOUR;
+
+const DEFAULT_POOL_FEE = 24n;
+const DEFAULT_PROTOCOL_FEE = 6n;
 
 const pursePetnames = {
   RUN: 'Agoric RUN currency',
@@ -48,7 +54,7 @@ const allValues = async (obj) => {
  * @param {number} [placesToShow]
  * @returns {string}
  */
-const stringifyNat = (natValue = null, decimalPlaces = 0, placesToShow = 2) => {
+const stringifyNat = (natValue, decimalPlaces = 0, placesToShow = 2) => {
   const str = `${natValue}`.padStart(decimalPlaces, '0');
   const leftOfDecimalStr = str.substring(0, str.length - decimalPlaces) || '0';
   const strPadded = `${str.substring(str.length - decimalPlaces)}`.padEnd(
@@ -143,6 +149,8 @@ const startElectorate = async (zoe, installations, brand) => {
  *   faucet: Faucet,
  *   wallet: UserWallet,
  *   board: ERef<Board>,
+ *   agoricNames: ERef<NameHub>,
+ *   priceAuthority: PriceAuthority,
  * }} Home
  * @typedef {{ get: (key: unknown) => any, set: (k: unknown, v: unknown) => void }} Store
  * @typedef { * } UserWallet TODO: see @agoric/dapp-svelte-wallet-api
@@ -153,26 +161,41 @@ export default async function deploy(homeP, { bundleSource }) {
   const home = await homeP;
   const availableFees = await allocateFees(home);
 
-  const { board, zoe, chainTimerService: timer } = home;
+  const { board, zoe, chainTimerService } = home;
+
+  console.log('await lookup contract installations...');
+  /** @type { Record<string, Installation> } */
+  const agoricInstallations = await allValues(
+    fromEntries(
+      [
+        'autoswap',
+        'binaryCounter',
+        'contractGovernor',
+        'liquidate',
+        'stablecoin',
+      ].map((key) => [key, E(home.agoricNames).lookup('installation', key)]),
+    ),
+  );
 
   /** @param { string } specifier */
-  const bundle = (specifier) =>
-    importMetaResolve(specifier, import.meta.url).then((url) =>
-      bundleSource(new URL(url).pathname),
+  const install = async (specifier) => {
+    console.log('await bundle ', specifier);
+    // @ts-ignore TODO: import.meta needs es2020 or esnext
+    const bundle = await importMetaResolve(specifier, import.meta.url).then(
+      (url) => bundleSource(new URL(url).pathname),
     );
-  console.log('await bundle contracts...');
-  const bundles = await allValues({
-    committee: bundle(`@agoric/governance/src/committee.js`),
-
-    binaryVoteCounter: bundle(`@agoric/governance/src/binaryVoteCounter.js`),
-    contractGovernor: bundle(`@agoric/governance/src/contractGovernor.js`),
-    governedContract: bundle(`./governedContract.js`),
-  });
-
-  console.log('await install contracts...');
-  const installations = await allValues(
-    mapValues(bundles, (b) => E(zoe).install(b)),
+    console.log('await install...');
+    const installation = await E(zoe).install(bundle);
+    return installation;
+  };
+  const committeeInstallation = await install(
+    '@agoric/governance/src/committee.js',
   );
+  /** @type { Record<string, Installation> } */
+  const installations = {
+    ...agoricInstallations,
+    committee: committeeInstallation,
+  };
 
   console.log('await start electorate...');
   const { electorateCreatorFacet, electorateInstance } = await startElectorate(
@@ -181,24 +204,43 @@ export default async function deploy(homeP, { bundleSource }) {
     availableFees.brand,
   );
 
-  const terms = {
-    timer,
-    electorateInstance,
-    governedContractInstallation: installations.governedContract,
-    governed: {
-      issuerKeywordRecord: {},
-      terms: {
-        main: makeInitialValues(availableFees.brand),
-        initialBrand: availableFees.brand,
-      },
-    },
+  const loanParams = {
+    chargingPeriod: SECONDS_PER_HOUR,
+    recordingPeriod: SECONDS_PER_DAY,
+    poolFee: DEFAULT_POOL_FEE,
+    protocolFee: DEFAULT_PROTOCOL_FEE,
   };
+  const treasuryTerms = harden({
+    autoswapInstall: installations.autoswap,
+    liquidationInstall: installations.liquidation,
+    priceAuthority: home.priceAuthority,
+    loanParams,
+    timerService: chainTimerService,
+    governedParams: governedParameterTerms,
+    bootstrapPaymentValue: 50000000000, // ISSUE: DEMO ONLY!
+  });
+  const governorTerms = harden({
+    timer: chainTimerService,
+    electorateInstance,
+    governedContractInstallation: installations.stablecoin,
+    governed: {
+      terms: treasuryTerms,
+      issuerKeywordRecord: {},
+      privateArgs: harden({ feeMintAccess: '@@TODO' }),
+    },
+  });
+
   const privateArgs = { electorateCreatorFacet };
   console.log('await start contractGovernor...');
   /** @type {{ creatorFacet: GovernedContractFacetAccess, instance: Instance }} */
   const { creatorFacet: governor, instance: governorInstance } = await E(
     zoe,
-  ).startInstance(installations.contractGovernor, {}, terms, privateArgs);
+  ).startInstance(
+    installations.contractGovernor,
+    {},
+    governorTerms,
+    privateArgs,
+  );
   const governedInstance = await E(governor).getInstance();
 
   console.log('await get board Ids...');

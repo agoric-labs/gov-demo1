@@ -5,6 +5,30 @@ import { E, makeCapTP } from '@agoric/captp';
 import { makePromiseKit } from '@agoric/promise-kit';
 import { observeIteration } from '@agoric/notifier';
 import { Far } from '@agoric/marshal';
+import { AmountMath } from '@agoric/ertp';
+// import { makeRatio } from '@agoric/zoe/src/contractSupport/ratio.js';
+
+const { details: X, quote: q } = assert;
+
+const PERCENT = 100n;
+const Nat = BigInt; // WARNING
+
+export const makeRatio = (
+  numerator,
+  numeratorBrand,
+  denominator = PERCENT,
+  denominatorBrand = numeratorBrand,
+) => {
+  assert(
+    denominator > 0n,
+    X`No infinite ratios! Denominator was 0/${q(denominatorBrand)}`,
+  );
+
+  return harden({
+    numerator: AmountMath.make(numeratorBrand, Nat(numerator)),
+    denominator: AmountMath.make(denominatorBrand, Nat(denominator)),
+  });
+};
 
 // yarn link and snowpack don't get along?
 // import { QuorumRule, ElectionType, ChoiceMethod } from '@agoric/governance';
@@ -18,6 +42,8 @@ const ChoiceMethod = { UNRANKED: 'unranked' };
 const ElectionType = { SURVEY: 'survey' };
 /** @type { Record<string, QuorumRule> } */
 const QuorumRule = { MAJORITY: 'majority' };
+
+const BASIS_POINTS = 10000n;
 
 /**
  * @typedef { import('@agoric/eventual-send').ERef<T>} ERef<T>
@@ -262,7 +288,7 @@ export const voter = (ui, { board, zoe }) => {
  */
 export const registrar = (ui, { board }) => {
   ui.onClick(
-    'form button#voteOnParamChange',
+    'form button#voteOnContractUpdate',
     withCatch(
       (err) => {
         debugger;
@@ -272,8 +298,6 @@ export const registrar = (ui, { board }) => {
         const form = {
           names: ui.getField('input[name="agoricNames"]'),
           timer: ui.getField('input[name="chainTimerService"]'),
-          key: ui.getField('input[name="key"]'),
-          parameterName: ui.getField('input[name="parameterName"]'),
           collateral: ui.getField('input[name="collateral"]'),
           secondsTillClose: parseInt(
             ui.getField('input[name="secondsTillClose"]'),
@@ -286,7 +310,7 @@ export const registrar = (ui, { board }) => {
         /** @type {ERef<Installation>} */
         const counterP = E(agoricNames).lookup('installation', 'binaryCounter');
         /** @type {ERef<GovernedContractFacetAccess>} */
-        const governor = E(agoricNames).lookup('demo', 'voteCreator');
+        const governor = E(agoricNames).lookup('demo', 'governorCreatorFacet');
         Promise.all([governor, counterP]).then(
           ([voteCreator, binaryCounter]) => {
             ui.setField('input[name="governor"]', `${voteCreator}`);
@@ -297,23 +321,36 @@ export const registrar = (ui, { board }) => {
           },
         );
 
-        const paramSpec = { key: form.key, parameterName: form.parameterName };
         console.log('await form values: collateral, time, counter...');
-        const [proposedValue, current, counter] = await Promise.all([
+        const [newIssuer, current, counter, runBrand] = await Promise.all([
           lookup(form.collateral),
           // @ts-ignore ISSUE: zoe API missing getCurrentTimestamp?
           E(lookup(form.timer)).getCurrentTimestamp(),
           counterP,
+          E(agoricNames).lookup('brand', 'RUN'),
         ]);
-        console.log('proposing change...', { paramSpec, proposedValue });
+        console.log('proposing change...', { newIssuer });
         const deadline = current + BigInt(form.secondsTillClose);
-        const result = await E(governor).voteOnParamChange(
-          paramSpec,
-          proposedValue,
+
+        const rates = harden({
+          initialMargin: makeRatio(120n, runBrand),
+          liquidationMargin: makeRatio(105n, runBrand),
+          interestRate: makeRatio(100n, runBrand, BASIS_POINTS),
+          loanFee: makeRatio(530n, runBrand, BASIS_POINTS),
+        });
+
+        const update = {
+          keyword: 'Collateral',
+          collateralIssuer: newIssuer,
+          rates,
+        };
+        const updateResults = E(governor).voteOnContractUpdate(
+          update,
           counter,
           deadline,
         );
-        console.log({ result });
+
+        console.log({ updateResults });
       },
     ),
   );

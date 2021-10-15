@@ -91,13 +91,14 @@
     <form>
       <fieldset>
         <legend>Committee Registrar</legend>
-        <label><em>Agoric Names boardID: see other</em></label>
+        <label>Agoric Names boardID: <input name='agoricNames' /></label>
 
         <!--
         <label>Registrar Installation boardID: <input name='registrarInstallation' value='495234043' /></label>
         <label>Committe name: <input name='committeeName' value="The Three Stooges" /></label>
         <label>Committe size: <input name='committeeSize' type='number' value="3" /></label>
         -->
+
         <button type="button" id='createRegistrar'>Get Committee Invitations</button>
         <hr />
         <h4>Invitations</h4>
@@ -113,16 +114,14 @@
         <legend>Add Collateral</legend>
         <label>Contract Governor Creator Facet boardID: <input name='governor' /></label>
 
-        <label>Agoric Names boardID: <input name='agoricNames' /></label>
-        <label><em>chainTimerService boardID: see below</em></label>
+        <label><em>Agoric Names boardID: see creator tab</em></label>
+        <label>chainTimerService boardID: <input name='chainTimerService' value='254080728' /></label>
 
-        <label>Parameter Key: <input name='key' /></label>
-        <label>Parameter Name: <input name='parameterName' value='Collateral' /></label>
         <label>Collateral Issuer boardID: <input name='collateral' /></label>
 
         <label>Seconds till close of votes: <input name='secondsTillCollateralClose' value='120' /></label>
 
-        <button type="button" id='voteOnParamChange'>Propose Parameter Change</button>
+        <button type="button" id='voteOnContractUpdate'>Propose Parameter Change</button>
         <hr />
       </fieldset>
     </form>
@@ -139,8 +138,8 @@ Wed, 10am</textarea>
         <br />
         <label>Registrar Creator Facet boardID: <input name='registrarCreatorFacet' /></label>
         <label>Counter Installation boardID: <input name='counterInstallation' value='1178513834' /></label>
-        <label>chainTimerService boardID: <input name='chainTimerService' value='254080728' /></label>
         <label>Seconds till close of votes: <input name='secondsTillClose' value='120' /></label>
+        <label><em>chainTimerService boardID: see below</em></label>
         <label>Quorum Rule <select name="quorumRule">
             <option value="majority">majority</option>
           </select></label>

@@ -340,8 +340,8 @@ export const registrar = (ui, { board }) => {
 
         const rates = harden({
           initialMargin: makeRatio(120n, runBrand),
-          liquidationMargin: makeRatio(105n, runBrand),
           interestRate: makeRatio(100n, runBrand, BASIS_POINTS),
+          liquidationMargin: makeRatio(105n, runBrand),
           loanFee: makeRatio(530n, runBrand, BASIS_POINTS),
         });
 

@@ -119,15 +119,16 @@ const withCatch = (oops, go) => (ev) => go(ev).catch((err) => oops(err));
 
 /**
  * @param { UI } ui
+ * @param {*} walletBridge
  * @param {{ board: any, zoe: ERef<ZoeService> } } chain
  */
-export const voter = (ui, { board, zoe }) => {
+export const voter = (ui, walletBridge, { board, zoe }) => {
   /** @type { QuestionDetails[] } */
   const questions = [];
   /** @type { string[][] } */
   const outcomes = [];
 
-  const renderPositions = (qix) => {
+  const renderPositions = async (qix) => {
     const {
       positions,
       closingRule: { deadline },
@@ -136,28 +137,30 @@ export const voter = (ui, { board, zoe }) => {
       'input[name="deadline"]',
       new Date(Number(deadline) * 1000).toString(),
     );
-    ui.setRadioGroup(
-      '#positions',
-      // @ts-ignore
-      positions.map(({ text }) => ({
-        value: text,
-        label: text,
-      })),
+    const items = await Promise.all(
+      positions.map(async (position, ix) => {
+        // if (position.keyword === 'Collateral') {
+        //   E(walletBridge).getPetNameForIssuer(...)
+        // }
+        return { value: `${ix}`, label: `${q(position)}` };
+      }),
     );
+
+    ui.setRadioGroup('#positions', items);
   };
 
-  const renderQuestions = () => {
+  const renderQuestions = async () => {
     ui.setOptions(
       'select[name="question"]',
       // @ts-ignore we know the issue has .text
-      questions.map(({ issue: { text: label } }, value) => ({
+      questions.map(({ issue }, value) => ({
         value: `${value}`,
-        label,
+        label: 'text' in issue ? issue.text : `${q(issue)}`,
       })),
     );
 
     if (questions.length > 0) {
-      renderPositions(questions.length - 1);
+      await renderPositions(questions.length - 1);
     }
 
     ui.onInput(
@@ -178,9 +181,8 @@ export const voter = (ui, { board, zoe }) => {
   const gotQuestion = async (details) => {
     console.log({ details });
 
-    assert('text' in details.issue); // SimpleIssue only
     questions.push(details);
-    renderQuestions();
+    await renderQuestions();
 
     const {
       issue,
@@ -264,11 +266,15 @@ export const voter = (ui, { board, zoe }) => {
       },
       async (_ev) => {
         await ui.busy('body', async () => {
-          const { questionHandle } =
-            questions[parseInt(ui.getField('select[name="question"]'), 10)];
-          const position = {
-            text: ui.getField('#positions input[type="radio"]:checked'),
-          };
+          const qix = parseInt(ui.getField('select[name="question"]'), 10);
+          const { questionHandle } = questions[qix];
+
+          const pix = parseInt(
+            ui.getField('#positions input[type="radio"]:checked'),
+            10,
+          );
+          const position = questions[qix].positions[pix];
+          console.log('voting for', { position, qix, pix });
 
           await E(voterRights.promise).castBallotFor(questionHandle, [
             position,
@@ -482,7 +488,7 @@ export const main = async (ui, walletBridge) => {
     board: E(walletBridge).getBoard(),
     zoe: E(walletBridge).getZoe(),
   };
-  voter(ui, chain);
+  voter(ui, walletBridge, chain);
   registrar(ui, chain);
   creator(ui, chain);
 };

@@ -12,8 +12,11 @@ import { Far } from '@agoric/marshal';
 // import '@agoric/governance/exported.js';
 
 // Avoid packing all of governance, zoe into the web runtime.
+/** @type { Record<string, ChoiceMethod> } */
 const ChoiceMethod = { UNRANKED: 'unranked' };
+/** @type { Record<string, ElectionType> } */
 const ElectionType = { SURVEY: 'survey' };
+/** @type { Record<string, QuorumRule> } */
 const QuorumRule = { MAJORITY: 'majority' };
 
 /**
@@ -252,7 +255,10 @@ export const voter = (ui, { board, zoe }) => {
 
 /**
  * @param { UI } ui
- * @param {{ board: any, zoe: ERef<ZoeService> } } chain
+ * @param {{
+ *   board: ERef<Board>,
+ *   zoe: ERef<ZoeService>,
+ * } } chain
  */
 export const registrar = (ui, { board }) => {
   ui.onClick(
@@ -264,8 +270,7 @@ export const registrar = (ui, { board }) => {
       },
       async (_ev) => {
         const form = {
-          governor: ui.getField('input[name="governor"]'),
-          counterInstallation: ui.getField('input[name="counterInstallation"]'),
+          names: ui.getField('input[name="agoricNames"]'),
           timer: ui.getField('input[name="chainTimerService"]'),
           key: ui.getField('input[name="key"]'),
           parameterName: ui.getField('input[name="parameterName"]'),
@@ -276,17 +281,32 @@ export const registrar = (ui, { board }) => {
           ),
         };
         const lookup = (id) => E(board).getValue(id);
+        /** @type { ERef<NameHub> } */
+        const agoricNames = lookup(form.names);
+        /** @type {ERef<Installation>} */
+        const counterP = E(agoricNames).lookup('installation', 'binaryCounter');
+        /** @type {ERef<GovernedContractFacetAccess>} */
+        const governor = E(agoricNames).lookup('demo', 'voteCreator');
+        Promise.all([governor, counterP]).then(
+          ([voteCreator, binaryCounter]) => {
+            ui.setField('input[name="governor"]', `${voteCreator}`);
+            ui.setField(
+              'input[name="counterInstallation"]',
+              `${binaryCounter}`,
+            );
+          },
+        );
+
         const paramSpec = { key: form.key, parameterName: form.parameterName };
         console.log('await form values: collateral, time, counter...');
         const [proposedValue, current, counter] = await Promise.all([
           lookup(form.collateral),
+          // @ts-ignore ISSUE: zoe API missing getCurrentTimestamp?
           E(lookup(form.timer)).getCurrentTimestamp(),
-          lookup(form.counterInstallation),
+          counterP,
         ]);
         console.log('proposing change...', { paramSpec, proposedValue });
         const deadline = current + BigInt(form.secondsTillClose);
-        /** @type {ERef<GovernedContractFacetAccess>} */
-        const governor = lookup(form.governor);
         const result = await E(governor).voteOnParamChange(
           paramSpec,
           proposedValue,
@@ -308,24 +328,31 @@ export const registrar = (ui, { board }) => {
       async (_ev) => {
         await ui.busy('body', async () => {
           const the = {
+            names: ui.getField('input[name="agoricNames"]'),
             issue: ui.getField('textarea[name="issue"]'),
-            timer: E(board).getValue(
-              ui.getField('input[name="chainTimerService"]'),
-            ),
+            timer: ui.getField('input[name="chainTimerService"]'),
             creatorFacet: E(board).getValue(
               ui.getField('input[name="registrarCreatorFacet"]'),
-            ),
-            counterInstallation: E(board).getValue(
-              ui.getField('input[name="counterInstallation"]'),
             ),
             secondsTillClose: parseInt(
               ui.getField('input[name="secondsTillClose"]'),
               10,
             ),
           };
-          const [timer, current] = await Promise.all([
-            the.timer,
-            E(the.timer).getCurrentTimestamp(),
+
+          /** @type { ERef<NameHub> } */
+          const agoricNames = E(board).getValue(the.names);
+          /** @type {ERef<Installation>} */
+          const counterP = E(agoricNames).lookup(
+            'installation',
+            'binaryCounter',
+          );
+
+          const [timer, current, counterInstallation] = await Promise.all([
+            E(board).getValue(the.timer),
+            // @ts-ignore ISSUE: zoe API missing getCurrentTimestamp?
+            E(E(board).getValue(the.timer)).getCurrentTimestamp(),
+            counterP,
           ]);
 
           const deadline = current + BigInt(the.secondsTillClose);
@@ -349,7 +376,7 @@ export const registrar = (ui, { board }) => {
 
           console.log('adding question', questionSpec);
           E(the.creatorFacet)
-            .addQuestion(the.counterInstallation, questionSpec)
+            .addQuestion(counterInstallation, questionSpec)
             .then((qr) => {
               console.log('question added', qr);
             })
@@ -365,9 +392,11 @@ export const registrar = (ui, { board }) => {
 
 /**
  * @param { UI } ui
- * @param {{ board: any, zoe: ERef<ZoeService> } } chain
+ * @param {{
+ *   board: ERef<Board>,
+ * }} chain
  */
-export const creator = (ui, { board, zoe }) => {
+export const creator = (ui, { board }) => {
   ui.onClick(
     'form button#createRegistrar',
     withCatch(
@@ -376,33 +405,30 @@ export const creator = (ui, { board, zoe }) => {
         console.error(err);
       },
       async (_ev) => {
-        const committeeTerms = {
-          committeeName: ui.getField('input[name="committeeName"]'),
-          committeeSize: parseInt(
-            ui.getField('input[name="committeeSize"]'),
-            10,
-          ),
-        };
         await ui.busy('body', async () => {
-          const installation = E(board).getValue(
-            ui.getField('input[name="registrarInstallation"]'),
-          );
-          const { creatorFacet, publicFacet } = await E(zoe).startInstance(
-            installation,
-            {},
-            committeeTerms,
+          const form = {
+            names: ui.getField('input[name="agoricNames"]'),
+          };
+          /** @type { ERef<NameHub> } */
+          const agoricNames = E(board).getValue(form.names);
+
+          /** @type {Promise<CommitteeElectorateCreatorFacet>} */
+          const electorateCreatorFacet = E(agoricNames).lookup(
+            'demo',
+            'electorateCreatorFacet',
           );
           const invitations = await Promise.all(
-            await E(creatorFacet).getVoterInvitations(),
+            await E(electorateCreatorFacet).getVoterInvitations(),
           );
-          const [creatorId, publicId, ...invitationIds] = await Promise.all([
-            E(board).getId(creatorFacet),
-            E(board).getId(publicFacet),
+
+          const [creatorLocal, ...invitationIds] = await Promise.all([
+            // cast to unknown to be compatible with other items in this list
+            /** @type { unknown } */ (electorateCreatorFacet),
             ...invitations.map((i) => E(board).getId(i)),
           ]);
           console.log({ invitations, invitationIds });
-          ui.setField('input[name="registrarCreatorFacet"]', creatorId);
-          ui.setField('input[name="registrarPublicFacet"]', publicId);
+          ui.setField('input[name="registrarCreatorFacet"]', `${creatorLocal}`);
+          // TODO? ui.setField('input[name="registrarPublicFacet"]', publicId);
           ui.setField('textarea[name="invitations"]', invitationIds.join('\n'));
         });
       },

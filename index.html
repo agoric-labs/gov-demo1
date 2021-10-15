@@ -112,17 +112,16 @@
     <form>
       <fieldset>
         <legend>Add Collateral</legend>
-        <label>Contract Governor Creator Facet boardID: <input name='governor' /></label>
-
         <label><em>Agoric Names boardID: see creator tab</em></label>
-        <label>chainTimerService boardID: <input name='chainTimerService' value='254080728' /></label>
+        <label>chainTimerService boardID: <input name='chainTimerService' /></label>
 
         <label>Collateral Issuer boardID: <input name='collateral' /></label>
 
         <label>Seconds till close of votes: <input name='secondsTillCollateralClose' value='120' /></label>
 
-        <button type="button" id='voteOnContractUpdate'>Propose Parameter Change</button>
+        <button type="button" id='voteOnContractUpdate'>Propose New Collateral</button>
         <hr />
+        <label>Contract Governor Creator Facet: <input name='governor' readonly /></label>
       </fieldset>
     </form>
 

@@ -141,7 +141,7 @@ const startElectorate = async (zoe, installations, brand) => {
  * @param {{
  *   bundleSource: (path: string) => Promise<Bundle>,
  *   resolvePath: (ref: string) => string,
- * }} deployPowers
+ * }} _deployPowers
  * @typedef {{
  *   chainTimerService: ERef<Timer>,
  *   scratch: ERef<Store>,
@@ -157,97 +157,16 @@ const startElectorate = async (zoe, installations, brand) => {
  * @typedef { * } Faucet TODO: ???
  * @typedef {{ getId: (value: unknown) => Promise<string> }} Board
  */
-export default async function deploy(homeP, { bundleSource }) {
+export default async function deploy(homeP, _deployPowers) {
   const home = await homeP;
-  const availableFees = await allocateFees(home);
+  await allocateFees(home);
 
-  const { board, zoe, chainTimerService } = home;
-
-  console.log('await lookup contract installations...');
-  /** @type { Record<string, Installation> } */
-  const agoricInstallations = await allValues(
-    fromEntries(
-      [
-        'autoswap',
-        'binaryCounter',
-        'contractGovernor',
-        'liquidate',
-        'stablecoin',
-      ].map((key) => [key, E(home.agoricNames).lookup('installation', key)]),
-    ),
-  );
-
-  /** @param { string } specifier */
-  const install = async (specifier) => {
-    console.log('await bundle ', specifier);
-    // @ts-ignore TODO: import.meta needs es2020 or esnext
-    const bundle = await importMetaResolve(specifier, import.meta.url).then(
-      (url) => bundleSource(new URL(url).pathname),
-    );
-    console.log('await install...');
-    const installation = await E(zoe).install(bundle);
-    return installation;
-  };
-  const committeeInstallation = await install(
-    '@agoric/governance/src/committee.js',
-  );
-  /** @type { Record<string, Installation> } */
-  const installations = {
-    ...agoricInstallations,
-    committee: committeeInstallation,
-  };
-
-  console.log('await start electorate...');
-  const { electorateCreatorFacet, electorateInstance } = await startElectorate(
-    zoe,
-    installations,
-    availableFees.brand,
-  );
-
-  const loanParams = {
-    chargingPeriod: SECONDS_PER_HOUR,
-    recordingPeriod: SECONDS_PER_DAY,
-    poolFee: DEFAULT_POOL_FEE,
-    protocolFee: DEFAULT_PROTOCOL_FEE,
-  };
-  const treasuryTerms = harden({
-    autoswapInstall: installations.autoswap,
-    liquidationInstall: installations.liquidation,
-    priceAuthority: home.priceAuthority,
-    loanParams,
-    timerService: chainTimerService,
-    governedParams: governedParameterTerms,
-    bootstrapPaymentValue: 50000000000, // ISSUE: DEMO ONLY!
-  });
-  const governorTerms = harden({
-    timer: chainTimerService,
-    electorateInstance,
-    governedContractInstallation: installations.stablecoin,
-    governed: {
-      terms: treasuryTerms,
-      issuerKeywordRecord: {},
-      privateArgs: harden({ feeMintAccess: '@@TODO' }),
-    },
-  });
-
-  const privateArgs = { electorateCreatorFacet };
-  console.log('await start contractGovernor...');
-  /** @type {{ creatorFacet: GovernedContractFacetAccess, instance: Instance }} */
-  const { creatorFacet: governor, instance: governorInstance } = await E(
-    zoe,
-  ).startInstance(
-    installations.contractGovernor,
-    {},
-    governorTerms,
-    privateArgs,
-  );
-  const governedInstance = await E(governor).getInstance();
+  const { board, chainTimerService, agoricNames } = home;
 
   console.log('await get board Ids...');
   const boardIds = await allValues(
-    mapValues(
-      { governor, governorInstance, governedInstance, ...installations },
-      (inst) => E(board).getId(inst),
+    mapValues({ agoricNames, chainTimerService }, (inst) =>
+      E(board).getId(inst),
     ),
   );
 

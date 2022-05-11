@@ -13,6 +13,8 @@ const { details: X, quote: q } = assert;
 const PERCENT = 100n;
 const Nat = BigInt; // WARNING
 
+const show = (it) => ('text' in it ? it.text : `${q(it)}`);
+
 export const makeRatio = (
   numerator,
   numeratorBrand,
@@ -72,6 +74,7 @@ export const networkSetup = (ui, { activateWebSocket, getActiveSocket }) => {
 
   const { promise: board, resolve: boardR } = makePromiseKit();
   const { promise: zoe, resolve: zoeR } = makePromiseKit();
+  const { promise: agoricNames, resolve: agoricNamesR } = makePromiseKit();
   const onConnect = async () => {
     const socket = getActiveSocket();
     const {
@@ -89,6 +92,7 @@ export const networkSetup = (ui, { activateWebSocket, getActiveSocket }) => {
 
     boardR(E(walletP).getBoard());
     zoeR(E(walletP).getZoe());
+    agoricNamesR(E(walletP).getAgoricNames());
   };
 
   const onDisconnect = () => {
@@ -107,7 +111,7 @@ export const networkSetup = (ui, { activateWebSocket, getActiveSocket }) => {
     onMessage,
   });
 
-  return { board, zoe };
+  return { agoricNames, board, zoe };
 };
 
 /**
@@ -120,9 +124,9 @@ const withCatch = (oops, go) => (ev) => go(ev).catch((err) => oops(err));
 /**
  * @param { UI } ui
  * @param {*} walletBridge
- * @param {{ board: any, zoe: ERef<ZoeService> } } chain
+ * @param {{ agoricNames: ERef<NameHub>, zoe: ERef<ZoeService> } } chain
  */
-export const voter = (ui, walletBridge, { board, zoe }) => {
+export const voter = (ui, walletBridge, { zoe, agoricNames }) => {
   /** @type { QuestionDetails[] } */
   const questions = [];
   /** @type { string[][] } */
@@ -155,7 +159,7 @@ export const voter = (ui, walletBridge, { board, zoe }) => {
       // @ts-ignore we know the issue has .text
       questions.map(({ issue }, value) => ({
         value: `${value}`,
-        label: 'text' in issue ? issue.text : `${q(issue)}`,
+        label: show(issue),
       })),
     );
 
@@ -195,7 +199,7 @@ export const voter = (ui, walletBridge, { board, zoe }) => {
       .getOutcome()
       .then((outcome) => {
         console.log('got outcome', issue, outcome);
-        outcomes.push([deadlineDisplay, ' ', issue.text, ': ', outcome.text]);
+        outcomes.push([deadlineDisplay, ' ', show(issue), ': ', outcome.text]);
         ui.setItems('#outcomes', outcomes);
       })
       .catch((e) => {
@@ -205,7 +209,7 @@ export const voter = (ui, walletBridge, { board, zoe }) => {
           ' vote failed: ',
           `${e}`,
           ' question: ',
-          issue.text,
+          show(issue),
         ]);
         ui.setItems('#outcomes', outcomes);
       });
@@ -214,39 +218,31 @@ export const voter = (ui, walletBridge, { board, zoe }) => {
   const voterRights = makePromiseKit();
 
   ui.onClick(
-    'form button#claim',
+    'form button#subscribe',
     withCatch(
       (err) => {
         debugger;
         console.log(err);
       },
       async (_ev) => {
-        ui.setDisabled('form button#claim', true);
+        ui.setDisabled('form button#subscribe', true);
 
-        // TODO: route this invitation via the wallet
-        const voterInvitation = await E(board).getValue(
-          ui.getField('input[name="voterInvitation"]'),
-        );
-        const registrarPublicFacet = await E(zoe).getPublicFacet(
-          await E(zoe).getInstance(voterInvitation),
-        );
-
-        E(E(zoe).offer(voterInvitation))
-          .getOfferResult()
-          .then((rights) => voterRights.resolve(rights));
+        const instanceName = ui.getField('input[name="instanceName"]');
+        const instance = await E(agoricNames).lookup('instance', instanceName);
+        const electoratePublicFacet = E(zoe).getPublicFacet(instance);
 
         // reset list of questions whenever registrar changes
         questions.splice(0, questions.length);
 
         observeIteration(
-          E(registrarPublicFacet).getQuestionSubscription(),
+          E(electoratePublicFacet).getQuestionSubscription(),
           Far('voting observer', {
             /** @param { QuestionDetails } details */
             updateState: gotQuestion,
           }),
         );
 
-        console.log('subscribed to questions from', voterInvitation);
+        console.log('subscribed to questions from', instance);
 
         // reset outcomes
         outcomes.splice(0, outcomes.length);
@@ -485,6 +481,7 @@ export const creator = (ui, { board }) => {
  */
 export const main = async (ui, walletBridge) => {
   const chain = {
+    agoricNames: E(walletBridge).getAgoricNames(),
     board: E(walletBridge).getBoard(),
     zoe: E(walletBridge).getZoe(),
   };

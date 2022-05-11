@@ -18,7 +18,7 @@ const { entries } = Object;
  *   getField: (sel: string) => string
  *   setField: (sel: string, value: string) => void
  *   setOptions: (sel: string, items: { value: string, label: string }[]) => void
- *   setRadioGroup: (sel: string, items: { value: string, label: string }[]) => void
+ *   setRadioGroup: (sel: string, name: string, items: { value: string, label: string }[]) => void
  *   setItems: (sel: string, items: string[][]) => void
  * }} UI
  */
@@ -66,13 +66,16 @@ export const makeUI = (document) => {
         select.appendChild(elt('option', { value }, [label]));
       });
     },
-    setRadioGroup: (sel, items) => {
+    setRadioGroup: (sel, name, items) => {
       const list = theElt(sel);
       list.innerHTML = '';
       items.forEach(({ value, label }) => {
         list.appendChild(
           elt('li', {}, [
-            elt('label', {}, [elt('input', { type: 'radio', value }), label]),
+            elt('label', {}, [
+              elt('input', { type: 'radio', name, value }),
+              label,
+            ]),
           ]),
         );
       });

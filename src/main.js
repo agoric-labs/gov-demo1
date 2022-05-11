@@ -150,7 +150,7 @@ export const voter = (ui, walletBridge, { zoe, agoricNames }) => {
       }),
     );
 
-    ui.setRadioGroup('#positions', items);
+    ui.setRadioGroup('#positions', 'choice', items);
   };
 
   const renderQuestions = async () => {

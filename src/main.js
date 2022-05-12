@@ -127,9 +127,18 @@ const withCatch = (oops, go) => (ev) => go(ev).catch((err) => oops(err));
 /**
  * @param { UI } ui
  * @param {*} walletBridge
- * @param {{ agoricNames: ERef<NameHub>, zoe: ERef<ZoeService> } } chain
+ * @param {{
+ *   agoricNames: ERef<NameHub>,
+ *   zoe: ERef<ZoeService>,
+ *   board: ERef<Board>,
+ *   sharedMap: ERef<any>
+ * } } chain
  */
-export const voter = (ui, walletBridge, { zoe, agoricNames }) => {
+export const voter = (
+  ui,
+  walletBridge,
+  { zoe, agoricNames, board, sharedMap },
+) => {
   /** @type { QuestionDetails[] } */
   const questions = [];
   /** @type { string[][] } */
@@ -254,6 +263,7 @@ export const voter = (ui, walletBridge, { zoe, agoricNames }) => {
     ),
   );
 
+  sharedMap.then((m) => E(m).lookup('voterFacet').then(voterRights.resolve));
   voterRights.promise.then(() => ui.setDisabled('form button#vote', false));
 
   ui.onClick(
@@ -289,9 +299,10 @@ export const voter = (ui, walletBridge, { zoe, agoricNames }) => {
  * @param {{
  *   agoricNames: ERef<NameHub>,
  *   board: ERef<Board>,
+ *   sharedMap: ERef<any>,
  * } } chain
  */
-export const registrar = (ui, { agoricNames, board }) => {
+export const registrar = (ui, { agoricNames, board, sharedMap }) => {
   ui.onClick(
     'form button#addQuestion',
     withCatch(
@@ -363,6 +374,8 @@ export const registrar = (ui, { agoricNames, board }) => {
     ),
   );
 
+  sharedMap.then(() => ui.setDisabled('form button#voteOnParamChange', false));
+
   ui.onClick(
     'form button#voteOnParamChange',
     withCatch(
@@ -388,9 +401,6 @@ export const registrar = (ui, { agoricNames, board }) => {
             ),
           };
 
-          const ssvc = E(board).getValue(form.sharingService);
-          const sharedMap = E(ssvc).grabSharedMap(form.sharedMap);
-
           const [current, charterAPI, collateralBrand, runBrand] =
             await Promise.all([
               E(E(sharedMap).lookup('timer')).getCurrentTimestamp(),
@@ -398,6 +408,7 @@ export const registrar = (ui, { agoricNames, board }) => {
               E(agoricNames).lookup('brand', form.collateralBrand),
               E(agoricNames).lookup('brand', RUNinfo.symbol),
             ]);
+          ui.setField('input[name="charterAPI"]', `${charterAPI}`);
 
           const deadline = current + BigInt(form.secondsTillClose);
 
@@ -478,15 +489,45 @@ export const creator = (ui, { board }) => {
   );
 };
 
+const sharing = (ui, board) => {
+  const { promise, resolve } = makePromiseKit();
+
+  ui.onBlur(
+    'input[name="sharedMap"]',
+    withCatch(
+      (err) => {
+        debugger;
+        console.log(err);
+      },
+      async (_ev) => {
+        const form = {
+          sharingService: ui.getField('input[name="sharingService"'),
+          sharedMap: ui.getField('input[name="sharedMap"]'),
+        };
+
+        const ssvc = E(board).getValue(form.sharingService);
+        const sharedMap = await E(ssvc).grabSharedMap(form.sharedMap);
+        resolve(sharedMap);
+      },
+    ),
+  );
+  return promise;
+};
+
 /**
  * @param { UI } ui
  * @param { * } walletBridge
  */
 export const main = async (ui, walletBridge) => {
+  const board = E(walletBridge).getBoard();
+  const sharedMap = sharing(ui, board);
+
   const chain = {
     agoricNames: E(walletBridge).getAgoricNames(),
-    board: E(walletBridge).getBoard(),
+    board,
     zoe: E(walletBridge).getZoe(),
+    sharingKit: makePromiseKit(),
+    sharedMap,
   };
   voter(ui, walletBridge, chain);
   registrar(ui, chain);

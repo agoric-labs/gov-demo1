@@ -12,6 +12,7 @@ const { entries } = Object;
  *   hide: (sel: string) => void
  *   setDisabled: (sel: string, state: boolean) => void
  *   onClick: (sel: string, l: EventListener) => void
+ *   onBlur: (sel: string, l: EventListener) => void
  *   onChange: (sel: string, l: EventListener) => void
  *   onInput: (sel: string, l: EventListener) => void
  *   busy: (sel: string, thunk: () => Promise<void>) => Promise<void>
@@ -47,6 +48,7 @@ export const makeUI = (document) => {
     hide: (sel) => theElt(sel).classList.add('hidden'),
     setDisabled: (sel, state) => (theElt(sel).disabled = state),
     onClick: (sel, l) => theElt(sel).addEventListener('click', l),
+    onBlur: (sel, l) => theElt(sel).addEventListener('blur', l),
     onChange: (sel, l) => theElt(sel).addEventListener('change', l),
     onInput: (sel, l) => theElt(sel).addEventListener('input', l),
     busy: async (sel, thunk) => {

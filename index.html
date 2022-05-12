@@ -55,6 +55,14 @@
 
   <p id='needDappApproval' class='hidden'>Please approve this dapp.</p>
 
+  <label>Sharing Service (board id):
+    <input name="sharingService" placeholder="board123" />
+  </label>
+  <label>Shared Map Name:
+    <input name="sharedMap" />
+  </label>
+  <hr />
+
   <nav>
     <ul>
       <li><label><input type='radio' checked name='section' value='member' />Committe Member</label></li>
@@ -68,13 +76,14 @@
   <section id='member'>
     <form>
       <fieldset>
+        <legend>Questions</legend>
         <label>Committee Instance Name: <input name='instanceName' value='economicCommittee' readonly /></label>
         <button type='button' id='subscribe'>Subscribe to Questions</button>
 
         <hr />
-        <legend>Questions</legend>
+
         <select name=question>
-          <option value="1">(questions: claim invitation to subscribe)</option>
+          <option value="1">(subscribe above)</option>
         </select>
         <p>Positions:</p>
         <ul id='positions'>
@@ -83,7 +92,7 @@
           <li><label><input type="radio" name="position" value="abstain">abstain</label></li>
         </ul>
         <label>Deadline: <input readonly name='deadline' /></label>
-        <button type='button' id='vote' disabled>Vote</button>
+        <button type='button' id='vote' disabled title="Provide shared map above to vote">Vote</button>
         <hr />
         <h3>Outcomes</h3>
         <ul id='outcomes'>
@@ -119,15 +128,7 @@
       <fieldset>
         <legend>Change Parameter</legend>
 
-        <label>Sharing Service (board id):
-          <input name="sharingService" placeholder="board123" />
-        </label>
-        <label>Shared Map Name:
-          <input name="sharedMap" />
-        </label>
-        <label>Timer Service: <input name='chainTimerService' readonly /></label>
-        <label>Charter: <input name='chainTimerService' readonly /></label>
-        <hr />
+        <label>Charter: <input name='charterAPI' readonly /></label>
         <label>Governed Contract:
           <select name="governedContract">
             <option>VaultFactory</option>
@@ -146,8 +147,9 @@
         <label>Value:
           <input name="paramValue" type="number" value="10000000" /> RUN
         </label>
+        <label>Timer Service: <input name='chainTimerService' readonly /></label>
         <label>Deadline: <input name='secondsTillCollateralClose' value='120' /> seconds from now</label>
-        <button type="button" id='voteOnParamChange'>Propose Change</button>
+        <button type="button" disabled id='voteOnParamChange'>Propose Change</button>
       </fieldset>
     </form>
 

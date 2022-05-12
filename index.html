@@ -40,6 +40,10 @@
       padding-bottom: 2px;
       background: yellow;
     }
+
+    input:read-only {
+      background-color: #ccc;
+    }
   </style>
 </head>
 
@@ -54,8 +58,10 @@
   <nav>
     <ul>
       <li><label><input type='radio' checked name='section' value='member' />Committe Member</label></li>
-      <li><label><input type='radio' name='section' value='creator' />Committee Creator</label></li>
-      <li><label><input type='radio' name='section' value='registrar' />Committe Registrar</label></li>
+
+      <li class="hidden"><label><input type='radio' name='section' value='creator' />Committee Creator</label></li>
+
+      <li><label><input type='radio' name='section' value='registrar' />Question Poser</label></li>
     </ul>
   </nav>
 
@@ -65,9 +71,6 @@
         <label>Committee Instance Name: <input name='instanceName' value='economicCommittee' readonly /></label>
         <button type='button' id='subscribe'>Subscribe to Questions</button>
 
-        <label>Voter Invitation boardID: <input name='voterInvitation' /></label>
-        <button type='button' id='claim'>Claim</button>
-        <p><em>TODO: trigger on invitation from wallet...</em></p>
         <hr />
         <legend>Questions</legend>
         <select name=question>
@@ -84,7 +87,7 @@
         <hr />
         <h3>Outcomes</h3>
         <ul id='outcomes'>
-          <li><em>(claim invitation to subscribe)</em></li>
+          <li><em>(subscribe above)</em></li>
         </ul>
       </fieldset>
     </form>
@@ -114,17 +117,37 @@
   <section id='registrar' class='hidden'>
     <form>
       <fieldset>
-        <legend>Add Collateral</legend>
-        <label><em>Agoric Names boardID: see creator tab</em></label>
-        <label>chainTimerService boardID: <input name='chainTimerService' /></label>
+        <legend>Change Parameter</legend>
 
-        <label>Collateral Issuer boardID: <input name='collateral' /></label>
-
-        <label>Seconds till close of votes: <input name='secondsTillCollateralClose' value='120' /></label>
-
-        <button type="button" id='voteOnContractUpdate'>Propose New Collateral</button>
+        <label>Sharing Service (board id):
+          <input name="sharingService" placeholder="board123" />
+        </label>
+        <label>Shared Map Name:
+          <input name="sharedMap" />
+        </label>
+        <label>Timer Service: <input name='chainTimerService' readonly /></label>
+        <label>Charter: <input name='chainTimerService' readonly /></label>
         <hr />
-        <label>Contract Governor Creator Facet: <input name='governor' readonly /></label>
+        <label>Governed Contract:
+          <select name="governedContract">
+            <option>VaultFactory</option>
+          </select>
+        </label>
+        <label>Collateral Brand:
+          <select name="collateralBrand">
+            <option>IbcATOM</option>
+          </select>
+        </label>
+        <label>Parameter:
+          <select name="paramKey">
+            <option>DebtLimit</option>
+          </select>
+        </label>
+        <label>Value:
+          <input name="paramValue" type="number" value="10000000" /> RUN
+        </label>
+        <label>Deadline: <input name='secondsTillCollateralClose' value='120' /> seconds from now</label>
+        <button type="button" id='voteOnParamChange'>Propose Change</button>
       </fieldset>
     </form>
 

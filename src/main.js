@@ -13,6 +13,11 @@ const { details: X, quote: q } = assert;
 const PERCENT = 100n;
 const Nat = BigInt; // WARNING
 
+const RUNinfo = {
+  symbol: 'RUN',
+  unit: 1_000_000n,
+};
+
 const show = (it) => ('text' in it ? it.text : `${q(it)}`);
 
 export const makeRatio = (
@@ -44,8 +49,6 @@ const ChoiceMethod = { UNRANKED: 'unranked' };
 const ElectionType = { SURVEY: 'survey' };
 /** @type { Record<string, QuorumRule> } */
 const QuorumRule = { MAJORITY: 'majority' };
-
-const BASIS_POINTS = 10000n;
 
 /**
  * @typedef { import('@agoric/eventual-send').ERef<T>} ERef<T>
@@ -284,79 +287,11 @@ export const voter = (ui, walletBridge, { zoe, agoricNames }) => {
 /**
  * @param { UI } ui
  * @param {{
+ *   agoricNames: ERef<NameHub>,
  *   board: ERef<Board>,
- *   zoe: ERef<ZoeService>,
  * } } chain
  */
-export const registrar = (ui, { board }) => {
-  ui.onClick(
-    'form button#voteOnContractUpdate',
-    withCatch(
-      (err) => {
-        debugger;
-        console.log(err);
-      },
-      async (_ev) => {
-        const form = {
-          names: ui.getField('input[name="agoricNames"]'),
-          timer: ui.getField('input[name="chainTimerService"]'),
-          collateral: ui.getField('input[name="collateral"]'),
-          secondsTillClose: parseInt(
-            ui.getField('input[name="secondsTillClose"]'),
-            10,
-          ),
-        };
-        const lookup = (id) => E(board).getValue(id);
-        /** @type { ERef<NameHub> } */
-        const agoricNames = lookup(form.names);
-        /** @type {ERef<Installation>} */
-        const counterP = E(agoricNames).lookup('installation', 'binaryCounter');
-        /** @type {ERef<GovernedContractFacetAccess>} */
-        const governor = E(agoricNames).lookup('demo', 'governorCreatorFacet');
-        Promise.all([governor, counterP]).then(
-          ([voteCreator, binaryCounter]) => {
-            ui.setField('input[name="governor"]', `${voteCreator}`);
-            ui.setField(
-              'input[name="counterInstallation"]',
-              `${binaryCounter}`,
-            );
-          },
-        );
-
-        console.log('await form values: collateral, time, counter...');
-        const [newIssuer, current, counter, runBrand] = await Promise.all([
-          lookup(form.collateral),
-          // @ts-ignore ISSUE: zoe API missing getCurrentTimestamp?
-          E(lookup(form.timer)).getCurrentTimestamp(),
-          counterP,
-          E(agoricNames).lookup('brand', 'RUN'),
-        ]);
-        console.log('proposing change...', { newIssuer });
-        const deadline = current + BigInt(form.secondsTillClose);
-
-        const rates = harden({
-          initialMargin: makeRatio(120n, runBrand),
-          interestRate: makeRatio(100n, runBrand, BASIS_POINTS),
-          liquidationMargin: makeRatio(105n, runBrand),
-          loanFee: makeRatio(530n, runBrand, BASIS_POINTS),
-        });
-
-        const update = {
-          keyword: 'Collateral',
-          collateralIssuer: newIssuer,
-          rates,
-        };
-        const updateResults = E(governor).voteOnContractUpdate(
-          update,
-          counter,
-          deadline,
-        );
-
-        console.log({ updateResults });
-      },
-    ),
-  );
-
+export const registrar = (ui, { agoricNames, board }) => {
   ui.onClick(
     'form button#addQuestion',
     withCatch(
@@ -423,6 +358,74 @@ export const registrar = (ui, { board }) => {
               console.error(err);
               debugger;
             });
+        });
+      },
+    ),
+  );
+
+  ui.onClick(
+    'form button#voteOnParamChange',
+    withCatch(
+      (err) => {
+        debugger;
+        console.log(err);
+      },
+      async (_ev) => {
+        await ui.busy('body', async () => {
+          const form = {
+            sharingService: ui.getField('input[name="sharingService"'),
+            sharedMap: ui.getField('input[name="sharedMap"]'),
+            governedContractName: ui.getField(
+              'select[name="governedContract"]',
+            ),
+            collateralBrand: ui.getField('select[name="collateralBrand"]'),
+            paramKey: ui.getField('select[name="paramKey"]'),
+            // TODO: graceful validation
+            paramValue: BigInt(ui.getField('input[name="paramValue"]')),
+            secondsTillClose: parseInt(
+              ui.getField('input[name="secondsTillClose"]'),
+              10,
+            ),
+          };
+
+          const ssvc = E(board).getValue(form.sharingService);
+          const sharedMap = E(ssvc).grabSharedMap(form.sharedMap);
+
+          const [current, charterAPI, collateralBrand, runBrand] =
+            await Promise.all([
+              E(E(sharedMap).lookup('timer')).getCurrentTimestamp(),
+              E(sharedMap).lookup('charterAPI'),
+              E(agoricNames).lookup('brand', form.collateralBrand),
+              E(agoricNames).lookup('brand', RUNinfo.symbol),
+            ]);
+
+          const deadline = current + BigInt(form.secondsTillClose);
+
+          const amount = AmountMath.make(
+            runBrand,
+            form.paramValue * RUNinfo.unit,
+          );
+          const params = {
+            DebtLimit: amount,
+          };
+          console.log('voteOnVaultParamChanges', {
+            params,
+            deadline: new Date(Number(deadline) * 1000).toISOString(),
+          });
+          return E.when(
+            E(charterAPI).voteOnVaultParamChanges(
+              params,
+              {
+                collateralBrand,
+              },
+              deadline,
+            ),
+            async (proposal) => {
+              console.log('await details...');
+              const details = await proposal.details;
+              console.log({ details });
+            },
+          );
         });
       },
     ),

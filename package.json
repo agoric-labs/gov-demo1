@@ -1,7 +1,10 @@
 {
+  "type": "module",
+  "main": "./src/main.js",
   "scripts": {
     "start": "snowpack dev",
     "build": "snowpack build",
+    "deploy:contracts": "agoric deploy tools/gov-demo-prep.js",
     "test": "ava",
     "lint": "yarn lint:types && yarn lint:eslint",
     "lint:eslint": "eslint '**/*.js'",
@@ -38,12 +41,17 @@
   ],
   "dependencies": {
     "@agoric/captp": "^1.10.5",
+    "@agoric/ertp": "^0.12.1",
     "@agoric/eventual-send": "^0.13.29",
     "@agoric/governance": "^0.2.3",
     "@agoric/marshal": "^0.4.27",
     "@agoric/notifier": "^0.3.30",
     "@agoric/promise-kit": "^0.2.27",
+    "@agoric/treasury": "^0.6.4",
+    "@agoric/vats": "^0.4.1",
     "@agoric/wallet-connection": "https://gitpkg.now.sh/Agoric/agoric-sdk/packages/wallet-connection",
+    "@agoric/zoe": "^0.19.1",
+    "import-meta-resolve": "^1.1.1",
     "ses": "^0.14.3"
   }
 }

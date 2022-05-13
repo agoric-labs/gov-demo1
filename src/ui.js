@@ -1,5 +1,6 @@
 // @ts-check
 import { E } from '@agoric/eventual-send';
+import '@agoric/wallet-connection/agoric-wallet-connection.js';
 
 const { entries } = Object;
 
@@ -11,13 +12,14 @@ const { entries } = Object;
  *   hide: (sel: string) => void
  *   setDisabled: (sel: string, state: boolean) => void
  *   onClick: (sel: string, l: EventListener) => void
+ *   onBlur: (sel: string, l: EventListener) => void
  *   onChange: (sel: string, l: EventListener) => void
  *   onInput: (sel: string, l: EventListener) => void
  *   busy: (sel: string, thunk: () => Promise<void>) => Promise<void>
  *   getField: (sel: string) => string
  *   setField: (sel: string, value: string) => void
  *   setOptions: (sel: string, items: { value: string, label: string }[]) => void
- *   setRadioGroup: (sel: string, items: { value: string, label: string }[]) => void
+ *   setRadioGroup: (sel: string, name: string, items: { value: string, label: string }[]) => void
  *   setItems: (sel: string, items: string[][]) => void
  * }} UI
  */
@@ -46,6 +48,7 @@ export const makeUI = (document) => {
     hide: (sel) => theElt(sel).classList.add('hidden'),
     setDisabled: (sel, state) => (theElt(sel).disabled = state),
     onClick: (sel, l) => theElt(sel).addEventListener('click', l),
+    onBlur: (sel, l) => theElt(sel).addEventListener('blur', l),
     onChange: (sel, l) => theElt(sel).addEventListener('change', l),
     onInput: (sel, l) => theElt(sel).addEventListener('input', l),
     busy: async (sel, thunk) => {
@@ -65,13 +68,16 @@ export const makeUI = (document) => {
         select.appendChild(elt('option', { value }, [label]));
       });
     },
-    setRadioGroup: (sel, items) => {
+    setRadioGroup: (sel, name, items) => {
       const list = theElt(sel);
       list.innerHTML = '';
       items.forEach(({ value, label }) => {
         list.appendChild(
           elt('li', {}, [
-            elt('label', {}, [elt('input', { type: 'radio', value }), label]),
+            elt('label', {}, [
+              elt('input', { type: 'radio', name, value }),
+              label,
+            ]),
           ]),
         );
       });
@@ -131,4 +137,21 @@ export const onWalletState = (ev) => {
     }
     default:
   }
+};
+
+/**
+ * @param {Document} document
+ * @typedef {{
+ *   walletConnection: {
+ *     getScopedBridge: (name: string) => unknown,
+ *   }
+ * }} WalletConnection
+ */
+export const startWallet = (document) => {
+  // Set up event handlers.
+  /** @type { (Element & WalletConnection) | null } */
+  const awc = document.querySelector('agoric-wallet-connection');
+  assert(awc);
+  awc.addEventListener('state', onWalletState);
+  return E(awc.walletConnection).getScopedBridge('Gov Demo');
 };

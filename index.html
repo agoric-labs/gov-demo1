@@ -40,6 +40,10 @@
       padding-bottom: 2px;
       background: yellow;
     }
+
+    input:read-only {
+      background-color: #ccc;
+    }
   </style>
 </head>
 
@@ -51,24 +55,35 @@
 
   <p id='needDappApproval' class='hidden'>Please approve this dapp.</p>
 
+  <label>Sharing Service (board id):
+    <input name="sharingService" placeholder="board123" />
+  </label>
+  <label>Shared Map Name:
+    <input name="sharedMap" />
+  </label>
+  <hr />
+
   <nav>
     <ul>
       <li><label><input type='radio' checked name='section' value='member' />Committe Member</label></li>
-      <li><label><input type='radio' name='section' value='creator' />Committee Creator</label></li>
-      <li><label><input type='radio' name='section' value='registrar' />Committe Registrar</label></li>
+
+      <li class="hidden"><label><input type='radio' name='section' value='creator' />Committee Creator</label></li>
+
+      <li><label><input type='radio' name='section' value='registrar' />Question Poser</label></li>
     </ul>
   </nav>
 
   <section id='member'>
     <form>
       <fieldset>
-        <label>Voter Invitation boardID: <input name='voterInvitation' /></label>
-        <button type='button' id='claim'>Claim</button>
-        <p><em>TODO: trigger on invitation from wallet...</em></p>
-        <hr />
         <legend>Questions</legend>
+        <label>Committee Instance Name: <input name='instanceName' value='economicCommittee' readonly /></label>
+        <button type='button' id='subscribe'>Subscribe to Questions</button>
+
+        <hr />
+
         <select name=question>
-          <option value="1">(questions: claim invitation to subscribe)</option>
+          <option value="1">(subscribe above)</option>
         </select>
         <p>Positions:</p>
         <ul id='positions'>
@@ -77,11 +92,11 @@
           <li><label><input type="radio" name="position" value="abstain">abstain</label></li>
         </ul>
         <label>Deadline: <input readonly name='deadline' /></label>
-        <button type='button' id='vote' disabled>Vote</button>
+        <button type='button' id='vote' disabled title="Provide shared map above to vote">Vote</button>
         <hr />
         <h3>Outcomes</h3>
         <ul id='outcomes'>
-          <li><em>(claim invitation to subscribe)</em></li>
+          <li><em>(subscribe above)</em></li>
         </ul>
       </fieldset>
     </form>
@@ -91,10 +106,15 @@
     <form>
       <fieldset>
         <legend>Committee Registrar</legend>
+        <label>Agoric Names boardID: <input name='agoricNames' /></label>
+
+        <!--
         <label>Registrar Installation boardID: <input name='registrarInstallation' value='495234043' /></label>
         <label>Committe name: <input name='committeeName' value="The Three Stooges" /></label>
         <label>Committe size: <input name='committeeSize' type='number' value="3" /></label>
-        <button type="button" id='createRegistrar'>Create Registrar</button>
+        -->
+
+        <button type="button" id='createRegistrar'>Get Committee Invitations</button>
         <hr />
         <h4>Invitations</h4>
         <textarea name='invitations' rows='5' , cols='10' readonly></textarea>
@@ -106,6 +126,37 @@
   <section id='registrar' class='hidden'>
     <form>
       <fieldset>
+        <legend>Change Parameter</legend>
+
+        <label>Charter: <input name='charterAPI' readonly /></label>
+        <label>Governed Contract:
+          <select name="governedContract">
+            <option>VaultFactory</option>
+          </select>
+        </label>
+        <label>Collateral Brand:
+          <select name="collateralBrand">
+            <option>IbcATOM</option>
+          </select>
+        </label>
+        <label>Parameter:
+          <select name="paramKey">
+            <option>DebtLimit</option>
+          </select>
+        </label>
+        <label>Value:
+          <input name="paramValue" type="number" value="10000000" /> RUN
+        </label>
+        <label>Timer Service: <input name='chainTimerService' readonly /></label>
+        <label>Deadline: <input name='secondsTillCollateralClose' value='120' /> seconds from now</label>
+        <button type="button" disabled id='voteOnParamChange'>Propose Change</button>
+      </fieldset>
+    </form>
+
+    <hr />
+
+    <form>
+      <fieldset>
         <legend>Add Question</legend>
         <p><em>Enter the question on the first line and each option on a separate line following.</em></p>
         <textarea name='issue' rows='6' cols='80'>When shall we meet?
@@ -114,8 +165,8 @@ Wed, 10am</textarea>
         <br />
         <label>Registrar Creator Facet boardID: <input name='registrarCreatorFacet' /></label>
         <label>Counter Installation boardID: <input name='counterInstallation' value='1178513834' /></label>
-        <label>chainTimerService boardID: <input name='chainTimerService' value='254080728' /></label>
         <label>Seconds till close of votes: <input name='secondsTillClose' value='120' /></label>
+        <label><em>chainTimerService boardID: see below</em></label>
         <label>Quorum Rule <select name="quorumRule">
             <option value="majority">majority</option>
           </select></label>
@@ -137,20 +188,15 @@ Wed, 10am</textarea>
 
   <script type="module">
     import './src/install-ses-lockdown.js';
-    import { E } from '@agoric/eventual-send';
-    import '@agoric/wallet-connection/agoric-wallet-connection.js';
-    import { makeUI, setupTabs, onWalletState } from './src/ui.js';
+    import { makeUI, setupTabs, startWallet } from './src/ui.js';
     import { main } from './src/main.js';
 
+    const walletBridge = startWallet(document);
     const ui = makeUI(document);
     setupTabs(ui);
-
-    // Set up event handlers.
-    const awc = document.querySelector('agoric-wallet-connection');
-    awc.addEventListener('state', onWalletState);
-    const walletBridge = E(awc.walletConnection).getScopedBridge('Gov Demo');
-
-    main(ui, walletBridge);
+    main(ui, walletBridge)
+      .then(() => console.log('ready.'))
+      .catch(err => console.error(err));
   </script>
 
 </body>

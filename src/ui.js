@@ -1,5 +1,5 @@
 // @ts-check
-import { E } from '@agoric/eventual-send';
+import { E } from '@endo/far';
 import '@agoric/wallet-connection/agoric-wallet-connection.js';
 
 const { entries } = Object;

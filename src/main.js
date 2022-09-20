@@ -1,10 +1,10 @@
 /* eslint-disable no-debugger */
 // @ts-check
 /* global HTMLSelectElement */
-import { E, makeCapTP } from '@agoric/captp';
-import { makePromiseKit } from '@agoric/promise-kit';
+import { E, makeCapTP } from '@endo/captp';
+import { makePromiseKit } from '@endo/promise-kit';
 import { observeIteration } from '@agoric/notifier';
-import { Far } from '@agoric/marshal';
+import { Far } from '@endo/marshal';
 import { AmountMath } from '@agoric/ertp';
 // import { makeRatio } from '@agoric/zoe/src/contractSupport/ratio.js';
 

@@ -40,18 +40,14 @@
     "dappConstants.js"
   ],
   "dependencies": {
-    "@agoric/captp": "^1.10.5",
-    "@agoric/ertp": "^0.12.1",
-    "@agoric/eventual-send": "^0.13.29",
-    "@agoric/governance": "^0.2.3",
-    "@agoric/marshal": "^0.4.27",
-    "@agoric/notifier": "^0.3.30",
-    "@agoric/promise-kit": "^0.2.27",
-    "@agoric/treasury": "^0.6.4",
-    "@agoric/vats": "^0.4.1",
-    "@agoric/wallet-connection": "https://gitpkg.now.sh/Agoric/agoric-sdk/packages/wallet-connection",
-    "@agoric/zoe": "^0.19.1",
-    "import-meta-resolve": "^1.1.1",
-    "ses": "^0.14.3"
+    "@agoric/ertp": "^0.15.0",
+    "@agoric/governance": "^0.8.0",
+    "@agoric/notifier": "^0.5.0",
+    "@agoric/store": "^0.8.0",
+    "@agoric/treasury": "^0.7.1",
+    "@agoric/vats": "^0.11.0",
+    "@agoric/wallet-connection": "^0.1.8",
+    "@agoric/zoe": "^0.25.0",
+    "import-meta-resolve": "^2.1.0"
   }
 }

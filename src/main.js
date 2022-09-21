@@ -1,6 +1,7 @@
 /* eslint-disable no-debugger */
 // @ts-check
 /* global HTMLSelectElement */
+import './install-ses-lockdown.js';
 import { makePromiseKit } from '@endo/promise-kit';
 import { observeIteration } from '@agoric/notifier';
 import { E, Far } from '@endo/far';

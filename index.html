@@ -192,15 +192,14 @@ Wed, 10am</textarea>
 
   <script type="module">
     import './src/install-ses-lockdown.js';
-    import { makeUI, setupTabs, startWallet } from './src/ui.js';
+    import { makeUI, setupTabs } from './src/ui.js';
     import { main } from './src/main.js';
 
-    const walletBridge = startWallet(document);
     const ui = makeUI(document);
     setupTabs(ui);
-    main(ui, walletBridge)
+    main(ui, { fetch: (...args) => fetch(...args) })
       .then(() => console.log('ready.'))
-      .catch(err => console.error(err));
+      .catch(err => console.error('main:', err));
   </script>
 
 </body>

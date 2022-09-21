@@ -1,12 +1,11 @@
 /* eslint-disable no-debugger */
 // @ts-check
 /* global HTMLSelectElement */
-import { E, makeCapTP } from '@endo/captp';
 import { makePromiseKit } from '@endo/promise-kit';
 import { observeIteration } from '@agoric/notifier';
-import { Far } from '@endo/marshal';
+import { E, Far } from '@endo/far';
 import { AmountMath } from '@agoric/ertp';
-// import { makeRatio } from '@agoric/zoe/src/contractSupport/ratio.js';
+import { makeRpcUtils } from './lib/rpc.js';
 
 const { details: X, quote: q } = assert;
 
@@ -54,68 +53,6 @@ const QuorumRule = { MAJORITY: 'majority' };
  * @typedef { import('@agoric/eventual-send').ERef<T>} ERef<T>
  * @template T
  */
-
-/**
- * @param {UI} ui
- * @param {*} io
- * @typedef { import('./ui.js').UI } UI
- */
-export const networkSetup = (ui, { activateWebSocket, getActiveSocket }) => {
-  let walletAbort;
-  let walletDispatch;
-
-  const otherSide = harden({
-    needDappApproval: (_origin, _pet) => {
-      console.log('need approval');
-      ui.show('#needDappApproval');
-    },
-    dappApproved: (_origin) => {
-      console.log('approved');
-      ui.hide('#needDappApproval');
-    },
-  });
-
-  const { promise: board, resolve: boardR } = makePromiseKit();
-  const { promise: zoe, resolve: zoeR } = makePromiseKit();
-  const { promise: agoricNames, resolve: agoricNamesR } = makePromiseKit();
-  const onConnect = async () => {
-    const socket = getActiveSocket();
-    const {
-      abort: ctpAbort,
-      dispatch: ctpDispatch,
-      getBootstrap,
-    } = makeCapTP(
-      'Governance Demo',
-      (obj) => socket.send(JSON.stringify(obj)),
-      otherSide,
-    );
-    walletAbort = ctpAbort;
-    walletDispatch = ctpDispatch;
-    const walletP = getBootstrap();
-
-    boardR(E(walletP).getBoard());
-    zoeR(E(walletP).getZoe());
-    agoricNamesR(E(walletP).getAgoricNames());
-  };
-
-  const onDisconnect = () => {
-    // setWalletConnected(false);
-    walletAbort && walletAbort();
-  };
-
-  const onMessage = (data) => {
-    const obj = JSON.parse(data);
-    walletDispatch && walletDispatch(obj);
-  };
-
-  activateWebSocket({
-    onConnect,
-    onDisconnect,
-    onMessage,
-  });
-
-  return { agoricNames, board, zoe };
-};
 
 /**
  * @param {(err: Error) => void} oops
@@ -516,20 +453,22 @@ const sharing = (ui, board) => {
 
 /**
  * @param { UI } ui
- * @param { * } walletBridge
+ * @param {object} io
+ * @param {typeof fetch} io.fetch
  */
-export const main = async (ui, walletBridge) => {
-  const board = E(walletBridge).getBoard();
-  const sharedMap = sharing(ui, board);
-
+export const main = async (ui, { fetch }) => {
+  console.log('main');
+  const agoricNet = 'ollinet';
+  const { vstorage, fromBoard, agoricNames } = await makeRpcUtils({
+    fetch,
+    agoricNet,
+  });
+  console.log({ agoricNames });
   const chain = {
-    agoricNames: E(walletBridge).getAgoricNames(),
-    board,
-    zoe: E(walletBridge).getZoe(),
-    sharingKit: makePromiseKit(),
-    sharedMap,
+    agoricNames,
+    fromBoard,
   };
-  voter(ui, walletBridge, chain);
-  registrar(ui, chain);
-  creator(ui, chain);
+  // voter(ui, chain);
+  // registrar(ui, chain);
+  // creator(ui, chain);
 };

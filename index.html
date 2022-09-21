@@ -186,6 +186,10 @@ Wed, 10am</textarea>
 
   <button>Connect to Wallet</button>
 
+  <script>
+    globalThis.process = {env:{}, on: ()=>{}}
+  </script>
+
   <script type="module">
     import './src/install-ses-lockdown.js';
     import { makeUI, setupTabs, startWallet } from './src/ui.js';

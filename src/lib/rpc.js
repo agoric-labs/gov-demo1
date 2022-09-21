@@ -58,7 +58,7 @@ export const makeVStorage = powers => {
         throw response;
       }
       const { value } = response;
-      return Buffer.from(value, 'base64').toString();
+      return atob(value);
     },
     /**
      *

@@ -2,6 +2,8 @@
   "type": "module",
   "main": "./src/main.js",
   "scripts": {
+    "start": "webpack serve",
+    "build": "yarn build:ses && webpack",
     "deploy:contracts": "agoric deploy tools/gov-demo-prep.js",
     "test": "ava",
     "lint": "yarn lint:types && yarn lint:eslint",
@@ -21,8 +23,11 @@
     "eslint-plugin-jsdoc": "^39.2.9",
     "eslint-plugin-jsx-a11y": "^6.5.1",
     "eslint-plugin-prettier": "^4.0.0",
+    "html-webpack-plugin": "^5.5.0",
     "prettier": "^2.6.2",
     "typescript": "~4.7.4"
+    "webpack-cli": "^4.10.0",
+    "webpack-dev-server": "^4.11.1"
   },
   "eslintConfig": {
     "extends": [
@@ -49,5 +54,6 @@
     "@agoric/zoe": "^0.25.0",
     "@endo/far": "^0.2.10",
     "import-meta-resolve": "^2.1.0"
+    "webpack": "^5.74.0"
   }
 }

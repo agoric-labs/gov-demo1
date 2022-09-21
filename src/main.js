@@ -5,7 +5,7 @@ import { makePromiseKit } from '@endo/promise-kit';
 import { observeIteration } from '@agoric/notifier';
 import { E, Far } from '@endo/far';
 import { AmountMath } from '@agoric/ertp';
-import { makeRpcUtils } from './lib/rpc.js';
+import { boardSlottingMarshaller, makeRpcUtils } from './lib/rpc.js';
 
 const { details: X, quote: q } = assert;
 
@@ -17,7 +17,7 @@ const RUNinfo = {
   unit: 1_000_000n,
 };
 
-const show = (it) => ('text' in it ? it.text : `${q(it)}`);
+const show = it => ('text' in it ? it.text : `${q(it)}`);
 
 export const makeRatio = (
   numerator,
@@ -59,29 +59,56 @@ const QuorumRule = { MAJORITY: 'majority' };
  * @param {(ev: Event) => Promise<void>} go
  * @returns {EventListener}
  */
-const withCatch = (oops, go) => (ev) => go(ev).catch((err) => oops(err));
+const withCatch = (oops, go) => ev => go(ev).catch(err => oops(err));
+
+const committeeJoinOffer = (id, { agoricNames }) => {
+  const { economicCommittee } = agoricNames.instance;
+  assert(economicCommittee, 'missing economicCommittee');
+
+  /** @type {import('../lib/psm.js').OfferSpec} */
+  const offer = {
+    id,
+    invitationSpec: {
+      source: 'purse',
+      // @ts-expect-error rpc
+      instance: economicCommittee,
+      // description: 'Voter0', // XXX it may not always be
+    },
+    proposal: {},
+  };
+
+  return {
+    method: 'executeOffer',
+    offer,
+  };
+};
 
 /**
  * @param { UI } ui
- * @param {*} walletBridge
  * @param {{
- *   agoricNames: ERef<NameHub>,
- *   zoe: ERef<ZoeService>,
- *   board: ERef<Board>,
- *   sharedMap: ERef<any>
+ *   agoricNames: Record<string, Record<string, *>>,
+ *   clock: () => number,
  * } } chain
  */
-export const voter = (
-  ui,
-  walletBridge,
-  { zoe, agoricNames, board, sharedMap },
-) => {
+export const voter = (ui, { agoricNames, clock }) => {
   /** @type { QuestionDetails[] } */
   const questions = [];
   /** @type { string[][] } */
   const outcomes = [];
 
-  const renderPositions = async (qix) => {
+  const marshaller = boardSlottingMarshaller();
+
+  /** @param {import('../lib/psm.js').BridgeAction} bridgeAction */
+  const finishAction = bridgeAction => {
+    const capData = marshaller.serialize(bridgeAction);
+    return JSON.stringify(capData);
+  };
+
+  const jc = committeeJoinOffer(clock(), { agoricNames });
+  const offer1 = finishAction(jc);
+  console.log({ jc, offer1 });
+
+  const renderPositions = async qix => {
     const {
       positions,
       closingRule: { deadline },
@@ -119,8 +146,8 @@ export const voter = (
     ui.onInput(
       'select[name="question"]',
       withCatch(
-        (err) => console.error(err),
-        async (ev) => {
+        err => console.error(err),
+        async ev => {
           assert(ev.target);
           assert(ev.target instanceof HTMLSelectElement);
           const qix = parseInt(ev.target.value, 10);
@@ -131,7 +158,7 @@ export const voter = (
   };
 
   /** @param { QuestionDetails } details */
-  const gotQuestion = async (details) => {
+  const gotQuestion = async details => {
     console.log({ details });
 
     questions.push(details);
@@ -146,12 +173,12 @@ export const voter = (
 
     E(E(zoe).getPublicFacet(counterInstance))
       .getOutcome()
-      .then((outcome) => {
+      .then(outcome => {
         console.log('got outcome', issue, outcome);
         outcomes.push([deadlineDisplay, ' ', show(issue), ': ', outcome.text]);
         ui.setItems('#outcomes', outcomes);
       })
-      .catch((e) => {
+      .catch(e => {
         console.error('vote failed:', issue, e);
         outcomes.push([
           deadlineDisplay,
@@ -169,11 +196,11 @@ export const voter = (
   ui.onClick(
     'form button#subscribe',
     withCatch(
-      (err) => {
+      err => {
         debugger;
         console.log(err);
       },
-      async (_ev) => {
+      async _ev => {
         ui.setDisabled('form button#subscribe', true);
 
         const instanceName = ui.getField('input[name="instanceName"]');
@@ -200,17 +227,16 @@ export const voter = (
     ),
   );
 
-  sharedMap.then((m) => E(m).lookup('voterFacet').then(voterRights.resolve));
   voterRights.promise.then(() => ui.setDisabled('form button#vote', false));
 
   ui.onClick(
     'form button#vote',
     withCatch(
-      (err) => {
+      err => {
         debugger;
         console.log(err);
       },
-      async (_ev) => {
+      async _ev => {
         await ui.busy('body', async () => {
           const qix = parseInt(ui.getField('select[name="question"]'), 10);
           const { questionHandle } = questions[qix];
@@ -243,11 +269,11 @@ export const registrar = (ui, { agoricNames, board, sharedMap }) => {
   ui.onClick(
     'form button#addQuestion',
     withCatch(
-      (err) => {
+      err => {
         debugger;
         console.log(err);
       },
-      async (_ev) => {
+      async _ev => {
         await ui.busy('body', async () => {
           const the = {
             names: ui.getField('input[name="agoricNames"]'),
@@ -283,7 +309,7 @@ export const registrar = (ui, { agoricNames, board, sharedMap }) => {
           const questionSpec = {
             method: ChoiceMethod.UNRANKED,
             issue: { text: issue },
-            positions: positions.map((text) => ({ text })),
+            positions: positions.map(text => ({ text })),
             electionType: ElectionType.SURVEY,
             maxChoices: 1,
             closingRule: {
@@ -299,10 +325,10 @@ export const registrar = (ui, { agoricNames, board, sharedMap }) => {
           console.log('adding question', questionSpec);
           E(the.creatorFacet)
             .addQuestion(counterInstallation, questionSpec)
-            .then((qr) => {
+            .then(qr => {
               console.log('question added', qr);
             })
-            .catch((err) => {
+            .catch(err => {
               console.error(err);
               debugger;
             });
@@ -316,11 +342,11 @@ export const registrar = (ui, { agoricNames, board, sharedMap }) => {
   ui.onClick(
     'form button#voteOnParamChange',
     withCatch(
-      (err) => {
+      err => {
         debugger;
         console.log(err);
       },
-      async (_ev) => {
+      async _ev => {
         await ui.busy('body', async () => {
           const form = {
             sharingService: ui.getField('input[name="sharingService"'),
@@ -368,7 +394,7 @@ export const registrar = (ui, { agoricNames, board, sharedMap }) => {
               },
               deadline,
             ),
-            async (proposal) => {
+            async proposal => {
               console.log('await details...');
               const details = await proposal.details;
               console.log({ details });
@@ -390,11 +416,11 @@ export const creator = (ui, { board }) => {
   ui.onClick(
     'form button#createRegistrar',
     withCatch(
-      (err) => {
+      err => {
         debugger;
         console.error(err);
       },
-      async (_ev) => {
+      async _ev => {
         await ui.busy('body', async () => {
           const form = {
             names: ui.getField('input[name="agoricNames"]'),
@@ -414,7 +440,7 @@ export const creator = (ui, { board }) => {
           const [creatorLocal, ...invitationIds] = await Promise.all([
             // cast to unknown to be compatible with other items in this list
             /** @type { unknown } */ (electorateCreatorFacet),
-            ...invitations.map((i) => E(board).getId(i)),
+            ...invitations.map(i => E(board).getId(i)),
           ]);
           console.log({ invitations, invitationIds });
           ui.setField('input[name="registrarCreatorFacet"]', `${creatorLocal}`);
@@ -424,31 +450,6 @@ export const creator = (ui, { board }) => {
       },
     ),
   );
-};
-
-const sharing = (ui, board) => {
-  const { promise, resolve } = makePromiseKit();
-
-  ui.onBlur(
-    'input[name="sharedMap"]',
-    withCatch(
-      (err) => {
-        debugger;
-        console.log(err);
-      },
-      async (_ev) => {
-        const form = {
-          sharingService: ui.getField('input[name="sharingService"'),
-          sharedMap: ui.getField('input[name="sharedMap"]'),
-        };
-
-        const ssvc = E(board).getValue(form.sharingService);
-        const sharedMap = await E(ssvc).grabSharedMap(form.sharedMap);
-        resolve(sharedMap);
-      },
-    ),
-  );
-  return promise;
 };
 
 /**
@@ -467,8 +468,9 @@ export const main = async (ui, { fetch }) => {
   const chain = {
     agoricNames,
     fromBoard,
+    clock: () => Date.now(),
   };
-  // voter(ui, chain);
+  voter(ui, chain);
   // registrar(ui, chain);
   // creator(ui, chain);
 };

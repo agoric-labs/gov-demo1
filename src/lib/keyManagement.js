@@ -339,7 +339,7 @@ export const makeInteractiveSigner = async (
     aminoTypes: new AminoTypes(converters),
     registry: SwingsetRegistry,
   });
-  console.debug('InteractiveSigner', { signingClient });
+  console.debug('InteractiveSigner', { signingClient, address });
 
   const fee = zeroFee();
 
@@ -390,6 +390,8 @@ export const makeInteractiveSigner = async (
 
       return tx;
     },
+
+    getSequence: () => signingClient.getSequence(address),
 
     /**
      * Sign and broadcast WalletSpendAction

@@ -472,6 +472,21 @@ export const creator = (ui, { board }) => {
   );
 };
 
+const prepareToSign = ({ signer, faucet }, ui) => {
+  ui.setField('input[name="agoricAddress"]', signer.address);
+  ui.setLink('a[name="faucet"]', faucet);
+
+  async () => {
+    try {
+      const stuff = await signer.getSequence();
+      console.log({ sequence: stuff });
+    } catch (notOnChain) {
+      console.error('getSequence', notOnChain);
+      alert(notOnChain.message);
+    }
+  };
+};
+
 /**
  * @param { UI } ui
  * @param {object} io
@@ -498,10 +513,6 @@ export const main = async (ui, { fetch, keplr }) => {
     'caption???',
   );
 
-  const offlineSigner = keplr.getOfflineSigner(chainInfo.chainId);
-
-  const accounts = await offlineSigner.getAccounts();
-
   const signer = await makeInteractiveSigner(
     chainInfo,
     keplr,
@@ -509,12 +520,15 @@ export const main = async (ui, { fetch, keplr }) => {
   );
 
   const chain = {
+    chainInfo,
+    faucet: `https://${agoricNet}.faucet.agoric.net/`,
     agoricNames,
     fromBoard,
     clock: () => Date.now(),
-    accounts,
     signer,
   };
+
+  prepareToSign(chain, ui);
 
   voter(ui, chain);
   // registrar(ui, chain);

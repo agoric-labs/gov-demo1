@@ -16,6 +16,7 @@ const { entries } = Object;
  *   busy: (sel: string, thunk: () => Promise<void>) => Promise<void>
  *   getField: (sel: string) => string
  *   setField: (sel: string, value: string) => void
+ *   setLink: (sel: string, ref: string) => void
  *   setOptions: (sel: string, items: { value: string, label: string }[]) => void
  *   setRadioGroup: (sel: string, name: string, items: { value: string, label: string }[]) => void
  *   setItems: (sel: string, items: string[][]) => void
@@ -59,6 +60,7 @@ export const makeUI = document => {
     },
     getField: sel => theElt(sel).value,
     setField: (sel, value) => (theElt(sel).value = value),
+    setLink: (sel, ref) => (theElt(sel).href = ref),
     setOptions: (sel, items) => {
       const select = theElt(sel);
       select.innerHTML = '';

@@ -9,8 +9,9 @@ const config = {
   plugins: [ESBuildNodePolyfillsPlugin],
   entryPoints: ['./src/install-ses-lockdown.js', './src/index.js'],
   bundle: true,
-  outdir: 'dist/',
+  outdir: 'public/',
   format: 'esm',
+  sourcemap: true,
   metafile: true,
   target: 'esnext',
 };

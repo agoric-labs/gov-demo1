@@ -49,18 +49,12 @@
 
 <body>
   <h1>Governance Demo</h1>
-  <address>
-    <a href="https://github.com/agoric-labs/gov-demo1">view source</a>
-  </address>
 
-  <p id='needDappApproval' class='hidden'>Please approve this dapp.</p>
-
-  <label>Sharing Service (board id):
-    <input name="sharingService" placeholder="board123" />
+  <label>Address:
+    <input name="agoricAddress" size="48" readonly />
   </label>
-  <label>Shared Map Name:
-    <input name="sharedMap" />
-  </label>
+  <p><em>Use the <a name="faucet" href="">faucet</a> to make sure your account exists;
+  that is: has some tokens.</em></p>
   <hr />
 
   <nav>
@@ -188,17 +182,15 @@ Wed, 10am</textarea>
     </form>
   </section>
 
-  <agoric-wallet-connection></agoric-wallet-connection>
-
-  <button>Connect to Wallet</button>
+  <hr />
+  <address>
+    <a href="https://github.com/agoric-labs/gov-demo1">view source</a>
+  </address>
 
   <script>
     globalThis.process = {env:{}, on: ()=>{}}
   </script>
-  <script>
-    console.log('hi from page')
-  </script>
-  <script type="module" src="./dist/lockdown.umd.js"></script>
-  <script type="module" src="./dist/install-ses-lockdown.js"></script>
-  <script type="module" src="./dist/index.js"></script>
+  <script type="module" src="./lockdown.umd.js"></script>
+  <script type="module" src="./install-ses-lockdown.js"></script>
+  <script type="module" src="./index.js"></script>
 </body>

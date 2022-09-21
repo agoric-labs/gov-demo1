@@ -1,6 +1,6 @@
 // @ts-check
 /* eslint-disable @jessie.js/no-nested-await */
-/* global Buffer, fetch, process */
+/* global fetch, process */
 
 import { NonNullish } from '@agoric/assert';
 

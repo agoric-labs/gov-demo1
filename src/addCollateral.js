@@ -2,7 +2,7 @@
 
 // Agoric Treasury add collateral deployment script
 
-import { E } from '@endo/eventual-send';
+import { E } from '@endo/far';
 import '@agoric/zoe/exported.js';
 
 import { makeRatio } from '@agoric/zoe/src/contractSupport/index.js';

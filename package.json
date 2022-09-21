@@ -4,6 +4,7 @@
   "scripts": {
     "start": "webpack serve",
     "build": "yarn build:ses && webpack",
+    "build:ses": "mkdir -p public/ && cp ./node_modules/ses/dist/lockdown.umd.js public/",
     "deploy:contracts": "agoric deploy tools/gov-demo-prep.js",
     "test": "ava",
     "lint": "yarn lint:types && yarn lint:eslint",

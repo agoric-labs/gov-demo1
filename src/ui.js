@@ -23,9 +23,9 @@ const { entries } = Object;
  *   setItems: (sel: string, items: string[][]) => void
  * }} UI
  */
-export const makeUI = (document) => {
-  const theElt = (s) => document.querySelector(s) || assert.fail(s);
-  const textNode = (txt) => document.createTextNode(txt);
+export const makeUI = document => {
+  const theElt = s => document.querySelector(s) || assert.fail(s);
+  const textNode = txt => document.createTextNode(txt);
 
   /**
    * @param {string} tag
@@ -37,15 +37,15 @@ export const makeUI = (document) => {
     entries(attrs).forEach(([name, value]) => {
       it.setAttribute(name, value);
     });
-    children.forEach((child) => {
+    children.forEach(child => {
       it.appendChild(typeof child === 'string' ? textNode(child) : child);
     });
     return it;
   };
 
   return {
-    show: (sel) => theElt(sel).classList.remove('hidden'),
-    hide: (sel) => theElt(sel).classList.add('hidden'),
+    show: sel => theElt(sel).classList.remove('hidden'),
+    hide: sel => theElt(sel).classList.add('hidden'),
     setDisabled: (sel, state) => (theElt(sel).disabled = state),
     onClick: (sel, l) => theElt(sel).addEventListener('click', l),
     onBlur: (sel, l) => theElt(sel).addEventListener('blur', l),
@@ -59,7 +59,7 @@ export const makeUI = (document) => {
         theElt(sel).classList.remove('wait');
       }
     },
-    getField: (sel) => theElt(sel).value,
+    getField: sel => theElt(sel).value,
     setField: (sel, value) => (theElt(sel).value = value),
     setOptions: (sel, items) => {
       const select = theElt(sel);
@@ -85,7 +85,7 @@ export const makeUI = (document) => {
     setItems: (sel, items) => {
       const list = theElt(sel);
       list.innerHTML = '';
-      items.forEach((item) => {
+      items.forEach(item => {
         list.appendChild(elt('li', {}, item));
       });
     },
@@ -95,11 +95,11 @@ export const makeUI = (document) => {
 /**
  * @param {UI} ui
  */
-export const setupTabs = (ui) => {
+export const setupTabs = ui => {
   const sections = ['member', 'creator', 'registrar'];
-  sections.forEach((section) => {
+  sections.forEach(section => {
     ui.onChange(`nav input[value="${section}"]`, () => {
-      sections.forEach((candidate) => {
+      sections.forEach(candidate => {
         if (candidate === section) {
           ui.show(`section#${section}`);
         } else {

@@ -6,7 +6,13 @@ import { makePromiseKit } from '@endo/promise-kit';
 import { observeIteration } from '@agoric/notifier';
 import { E, Far } from '@endo/far';
 import { AmountMath } from '@agoric/ertp';
+import { SigningStargateClient as AmbientClient } from '@cosmjs/stargate';
+
 import { boardSlottingMarshaller, makeRpcUtils } from './lib/rpc.js';
+import { makeInteractiveSigner } from './lib/keyManagement.js';
+import { makeChainInfo } from './lib/chainInfo.js';
+
+console.log('hi from main');
 
 const { details: X, quote: q } = assert;
 
@@ -89,9 +95,10 @@ const committeeJoinOffer = (id, { agoricNames }) => {
  * @param {{
  *   agoricNames: Record<string, Record<string, *>>,
  *   clock: () => number,
+ *   signer: Awaited<ReturnType<typeof makeInteractiveSigner>>,
  * } } chain
  */
-export const voter = (ui, { agoricNames, clock }) => {
+export const voter = (ui, { agoricNames, clock, signer }) => {
   /** @type { QuestionDetails[] } */
   const questions = [];
   /** @type { string[][] } */
@@ -105,9 +112,22 @@ export const voter = (ui, { agoricNames, clock }) => {
     return JSON.stringify(capData);
   };
 
-  const jc = committeeJoinOffer(clock(), { agoricNames });
-  const offer1 = finishAction(jc);
-  console.log({ jc, offer1 });
+  ui.onClick(
+    'form button#joinCommittee',
+    withCatch(
+      err => {
+        debugger;
+        console.log(err);
+      },
+      async _ev => {
+        // ui.setDisabled('form button#joinCommittee', true);
+        const jc = committeeJoinOffer(clock(), { agoricNames });
+        const joinAction = finishAction(jc);
+        console.log({ jc, joinAction });
+        await signer.submitSpendAction(joinAction);
+      },
+    ),
+  );
 
   const renderPositions = async qix => {
     const {
@@ -457,20 +477,46 @@ export const creator = (ui, { board }) => {
  * @param { UI } ui
  * @param {object} io
  * @param {typeof fetch} io.fetch
+ * @param io.keplr
  */
-export const main = async (ui, { fetch }) => {
+export const main = async (ui, { fetch, keplr }) => {
   console.log('main');
   const agoricNet = 'ollinet';
   const { vstorage, fromBoard, agoricNames } = await makeRpcUtils({
     fetch,
     agoricNet,
   });
-  console.log({ agoricNames });
+  // console.log({ agoricNames });
+
+  const netConfUrl = `https://${agoricNet}.agoric.net/network-config`;
+  const networkConfig = await fetch(netConfUrl).then(r => r.json());
+  console.log({ networkConfig: netConfUrl });
+
+  const chainInfo = makeChainInfo(
+    netConfUrl,
+    networkConfig.rpcAddrs[0],
+    networkConfig.chainName,
+    'caption???',
+  );
+
+  const offlineSigner = keplr.getOfflineSigner(chainInfo.chainId);
+
+  const accounts = await offlineSigner.getAccounts();
+
+  const signer = await makeInteractiveSigner(
+    chainInfo,
+    keplr,
+    AmbientClient.connectWithSigner,
+  );
+
   const chain = {
     agoricNames,
     fromBoard,
     clock: () => Date.now(),
+    accounts,
+    signer,
   };
+
   voter(ui, chain);
   // registrar(ui, chain);
   // creator(ui, chain);

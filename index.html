@@ -77,6 +77,12 @@
   <section id='member'>
     <form>
       <fieldset>
+        <legend>Membership</legend>
+
+        <label>Invitation: <input name='committeeInvitation' readonly /></label>
+        <button type='button' id='joinCommittee'>Accept</button>
+      </fieldset>
+      <fieldset>
         <legend>Questions</legend>
         <label>Committee Instance Name: <input name='instanceName' value='economicCommittee' readonly /></label>
         <button type='button' id='subscribe'>Subscribe to Questions</button>
@@ -190,17 +196,7 @@ Wed, 10am</textarea>
   <script>
     globalThis.process = {env:{}, on: ()=>{}}
   </script>
-
-  <script type="module">
-    import './src/install-ses-lockdown.js';
-    import { makeUI, setupTabs } from './src/ui.js';
-    import { main } from './src/main.js';
-
-    const ui = makeUI(document);
-    setupTabs(ui);
-    main(ui, { fetch: (...args) => fetch(...args) })
-      .then(() => console.log('ready.'))
-      .catch(err => console.error('main:', err));
+  <script>
+    console.log('hi from page')
   </script>
-
 </body>

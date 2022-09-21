@@ -46,6 +46,7 @@
   ],
   "dependencies": {
     "@agoric/assert": "^0.5.0",
+    "@agoric/cosmic-proto": "../agoric-sdk/packages/cosmic-proto",
     "@agoric/ertp": "^0.15.0",
     "@agoric/governance": "^0.8.0",
     "@agoric/notifier": "^0.5.0",

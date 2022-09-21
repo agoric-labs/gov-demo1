@@ -59,8 +59,10 @@
     "@cosmjs/stargate": "^0.29.0",
     "@cosmjs/tendermint-rpc": "^0.29.0",
     "@endo/far": "^0.2.10",
-    "import-meta-resolve": "^2.1.0"
+    "@endo/init": "^0.5.48",
+    "@endo/promise-kit": "^0.2.48",
     "cosmjs-types": "^0.5.1",
+    "import-meta-resolve": "^2.1.0",
     "webpack": "^5.74.0"
   }
 }

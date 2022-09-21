@@ -1,5 +1,5 @@
 // @ts-check
-import { E } from '@agoric/eventual-send';
+import { E } from '@endo/far';
 import { resolve as importMetaResolve } from 'import-meta-resolve';
 import { AmountMath } from '@agoric/ertp';
 import { governedParameterTerms } from '@agoric/treasury/src/params.js';
